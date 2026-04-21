@@ -1,0 +1,15 @@
+{
+  "name": "citation-auditor",
+  "version": "0.1.0",
+  "description": "A general-purpose AI claim verification plugin for Claude Code with bundled Korean-law and general-web verifiers.",
+  "author": "kpsfamily",
+  "tags": [
+    "verification",
+    "citation",
+    "fact-check",
+    "legal",
+    "korean-law"
+  ],
+  "commands": "./commands/",
+  "skills": "./skills/"
+}

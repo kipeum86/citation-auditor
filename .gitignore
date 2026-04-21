@@ -1,0 +1,11 @@
+.venv/
+.uv-cache/
+.pytest_cache/
+__pycache__/
+fixtures/real/
+dist/
+build/
+*.egg-info/
+
+# private session logs (kp-nblm sync target — never commit)
+docs/session-log-*.md
