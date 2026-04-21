@@ -2,13 +2,20 @@
   "name": "citation-auditor",
   "version": "0.1.0",
   "description": "A general-purpose AI claim verification plugin for Claude Code with bundled Korean-law and general-web verifiers.",
-  "author": "kpsfamily",
-  "tags": [
+  "author": {
+    "name": "kipeum86",
+    "email": "kipeum86@gmail.com"
+  },
+  "homepage": "https://github.com/kipeum86/citation-auditor",
+  "repository": "https://github.com/kipeum86/citation-auditor",
+  "license": "Apache-2.0",
+  "keywords": [
     "verification",
     "citation",
     "fact-check",
     "legal",
-    "korean-law"
+    "korean-law",
+    "hallucination"
   ],
   "commands": "./commands/",
   "skills": "./skills/"
