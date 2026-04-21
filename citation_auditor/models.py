@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class ClaimType(str, Enum):
@@ -48,7 +48,7 @@ class ClaimList(BaseModel):
 
 
 class Evidence(BaseModel):
-    url: HttpUrl
+    url: str = Field(min_length=1)
     title: str | None = None
     snippet: str | None = None
     extracted_text: str | None = None

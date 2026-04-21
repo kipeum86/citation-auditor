@@ -1,4 +1,4 @@
-from citation_auditor.models import Claim, ClaimType, SentenceSpan, Verdict, VerdictLabel
+from citation_auditor.models import Claim, ClaimType, Evidence, SentenceSpan, Verdict, VerdictLabel
 from citation_auditor.render import render_markdown
 
 
@@ -76,3 +76,24 @@ def test_render_inserts_badges_in_reverse_order_and_skips_quote_and_code() -> No
     code_section = rendered.split("```")[1]
     assert "**[❓ general-web]**" not in code_section
 
+
+def test_render_formats_plain_language_evidence_without_duplicate_wrapping() -> None:
+    md_text = "Normal sentence one."
+    verdict = Verdict(
+        claim=Claim(
+            text="Normal sentence one.",
+            sentence_span=SentenceSpan(start=0, end=len("Normal sentence one.")),
+            claim_type=ClaimType.FACTUAL,
+            suggested_verifier="korean-law",
+        ),
+        label=VerdictLabel.UNKNOWN,
+        verifier_name="korean-law",
+        authority=1.0,
+        rationale="사건번호는 확인됩니다. 판례의 정확한 판시 내용은 원문 확인을 권장합니다.",
+        evidence=[Evidence(url="law.go.kr 판례 검색 결과 ID 245007 (전문 제공 여부가 일정하지 않을 수 있습니다.)")],
+    )
+
+    rendered = render_markdown(md_text, [verdict])
+
+    assert "law.go.kr 판례 검색 결과 ID 245007 (전문 제공 여부가 일정하지 않을 수 있습니다.)" in rendered
+    assert "(law.go.kr 판례 검색 결과 ID 245007" not in rendered

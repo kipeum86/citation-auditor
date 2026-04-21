@@ -48,12 +48,18 @@ def _audit_report(verdicts: list[Verdict]) -> str:
         lines.append(f"- Claim: {verdict.claim.text}")
         lines.append(f"- Rationale: {verdict.rationale}")
         if verdict.evidence:
-            evidence_summary = "; ".join(f"{item.title or item.url} ({item.url})" for item in verdict.evidence)
+            evidence_summary = "; ".join(_format_evidence(item.title, item.url) for item in verdict.evidence)
             lines.append(f"- Evidence: {evidence_summary}")
         else:
             lines.append("- Evidence: none")
         lines.append("")
     return "\n".join(lines).rstrip() + "\n"
+
+
+def _format_evidence(title: str | None, reference: str) -> str:
+    if title and title != reference:
+        return f"{title} ({reference})"
+    return reference
 
 
 def _skip_ranges(md_text: str) -> list[tuple[int, int]]:

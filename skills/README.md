@@ -68,6 +68,8 @@ Notes:
 
 - `authority` in the output should match the frontmatter authority.
 - `supporting_urls` may be empty if the verifier cannot reach a conclusion.
+- `supporting_urls` may contain either clickable URLs or plain-language source references when no stable URL exists.
+- Final-user rationales should read like professional review notes, not internal release or task-tracking jargon.
 - Do not emit markdown fences or explanatory prose around the JSON.
 
 ## Routing Behavior
