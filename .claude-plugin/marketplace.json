@@ -1,0 +1,13 @@
+{
+  "name": "citation-auditor",
+  "owner": {
+    "name": "kipeum86",
+    "email": "kipeum86@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "citation-auditor",
+      "source": "./"
+    }
+  ]
+}
