@@ -39,16 +39,16 @@ Protocol:
    - `rationale: "로컬 전용 모드에서는 외부 원문을 조회하지 않았습니다."`
    - `supporting_urls: []`
    - `authority: 0.5`
-3. Otherwise, find up to 3 relevant web pages for the claim.
-4. Use WebFetch on those pages only. Prefer primary or authoritative sources when available.
-5. If every fetch attempt fails or no usable text is retrieved, return:
+3. Otherwise, identify up to 3 distinct relevant web pages for the claim. Prefer primary or authoritative sources (government statistics, official reports, encyclopedias, reputable news) over forums and user-generated content.
+4. Attempt WebFetch on **every** candidate page before concluding failure. Do not give up after a single failed fetch — try all 3 candidates.
+5. Only if **all attempted fetches fail** (HTTP errors, timeouts, or empty content across every candidate) return:
    - `label: "unknown"`
    - `rationale: "원문 조회 실패"`
    - `supporting_urls: []`
    - `authority: 0.5`
-6. Compare the fetched content to the claim.
-7. If the evidence supports the claim, return `verified`.
-8. If the evidence clearly refutes the claim, return `contradicted`.
-9. If the evidence is mixed or too weak, return `unknown`.
-10. Keep the rationale concise, evidence-based, and written for end users.
-11. When you do reach a verified or contradicted conclusion, include every page you actually compared in `supporting_urls`.
+6. If **at least one** page returned usable content, proceed to comparison even if other fetches failed. Use what you have.
+7. Compare the retrieved content to the claim.
+8. If the evidence supports the claim, return `verified` with every page you actually compared in `supporting_urls`.
+9. If the evidence clearly refutes the claim (contradictory facts, different numbers, contradictory dates), return `contradicted` with supporting URLs and a rationale that cites the specific discrepancy (for example `주장은 15%이나, 원문은 3.4%로 명시함`).
+10. If the evidence is mixed or insufficient to decide, return `unknown` with a rationale that describes what you found and why it is inconclusive. Do **not** use `원문 조회 실패` as the rationale here — that string is reserved for actual fetch failures in step 5.
+11. Keep the rationale concise, evidence-based, and written for end users.

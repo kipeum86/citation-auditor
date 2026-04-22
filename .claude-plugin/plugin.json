@@ -1,6 +1,6 @@
 {
   "name": "citation-auditor",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A general-purpose AI claim verification plugin for Claude Code with bundled Korean-law and general-web verifiers.",
   "author": {
     "name": "kipeum86",

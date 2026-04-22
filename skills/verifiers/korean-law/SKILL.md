@@ -75,11 +75,18 @@ Shared setup:
    `law.go.kr/법령/<법령명>/<조>`
 4. Load the article text with:
    `get_law_text(lawId=<resolved lawId>, jo=<parsed jo>)`
-5. If `get_law_text` fails, is empty, or does not yield usable article text, return:
-   - `label: "unknown"`
-   - `rationale: "원문 조회 실패"`
-   - `supporting_urls: []`
-   - `authority: 1.0`
+5. Classify the `get_law_text` response:
+   a. **Article does not exist** — if the response text contains the phrase `조문 내용을 찾을 수 없습니다` or `조문을 찾을 수 없습니다` (the MCP's explicit non-existence signal), the article is absent from this law. Return:
+      - `label: "contradicted"`
+      - `rationale: "<법령명>에 <조>는 존재하지 않습니다."`
+      - `supporting_urls: []`
+      - `authority: 1.0`
+   b. **Genuine retrieval failure** — if the response is an error unrelated to article existence (network error, malformed response, tool error, empty payload without the non-existence signal), return:
+      - `label: "unknown"`
+      - `rationale: "원문 조회 실패"`
+      - `supporting_urls: []`
+      - `authority: 1.0`
+   c. **Article text returned** — proceed to step 6.
 6. If the claim is article-level only, compare the full returned article text against the claim.
 7. If the claim specifies `hang`, extract that paragraph from the returned article text:
    - write the raw article text to a temp file or pass it via stdin
