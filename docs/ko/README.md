@@ -125,10 +125,16 @@ Python 유틸 레이어(`python -m citation_auditor chunk|render|aggregate|korea
 
 | Verifier | Authority | Pattern 매칭 | 메커니즘 |
 |---|:---:|---|---|
-| **`korean-law`** | 1.0 | 제N조, 주요 법령명, 판례번호 | Korean-law MCP로 조문 원문 비교 (조/항/호 단위) + 판례 사건번호 존재 확인 + 검색 결과 제목 기반 쟁점 불일치 탐지 |
-| **`general-web`** | 0.5 | `.*` (모든 claim fallback) | WebSearch로 상위 3개 권위 있는 URL 선정 → WebFetch로 본문 수집 → LLM 기반 claim 판정 |
+| **`korean-law`** | 1.0 | 제N조, 주요 한국 법령명, 판례 번호(`YYYY다/가/도…NNNNN`) | Korean-law MCP로 조문 원문 비교(조/항/호 단위) + 판례 사건번호 존재 확인 + 검색 결과 제목 기반 쟁점 불일치 탐지 |
+| **`scholarly`** | 0.9 | DOI(`10.XXXX/...`), arXiv ID, PMID, 구조화된 저널 인용 | CrossRef + arXiv + PubMed E-utilities 무료 API로 논문 존재 여부와 메타데이터(제목/저자/연도/저널) 일치 검증 |
+| **`wikipedia`** | 0.7 | 역사·전기·설립연도 류 문장 패턴 | Wikipedia REST summary API (영문 + 한국어) → 엔터티 항목 조회 → 특정 사실 교차 확인, 요약으로 부족하면 전체 본문 WebFetch |
+| **`general-web`** | 0.5 | `.*` (나머지 모든 claim의 fallback) | WebSearch로 상위 3개 권위 있는 URL 선정 → WebFetch로 본문 수집 → LLM 기반 claim 판정 |
 
-**Verdict 집계 정책:** 하나의 claim에 여러 verifier가 매치되면 **authority 가중치**가 높은 verdict가 우선. 동일 authority에서 판정이 엇갈리면 `❓`(충돌 신호, 억지 verdict 금지) 반환.
+**라우팅 순서:** claim extractor가 선언한 `suggested_verifier` 우선 → 로드된 verifier skill의 정규식 `patterns` 매칭 → `general-web` 폴백. 한 claim에 여러 verifier가 매치되면 Task tool 서브에이전트 디스패치로 **병렬 실행**.
+
+**Verdict 집계 정책:** 한 claim에 여러 verifier가 verdict를 내면 **authority 가중치**가 높은 쪽이 우선. 동일 authority 충돌은 `❓`(억지 verdict 금지).
+
+**API 키 0건 설계:** 번들된 모든 verifier는 Claude Code MCP(korean-law) 또는 인증 없는 공공 API(CrossRef, arXiv, PubMed, Wikipedia, WebSearch/WebFetch)만 사용합니다. 플러그인 설치 외에 추가 설정이 필요 없습니다.
 
 ---
 
@@ -294,11 +300,12 @@ disable-model-invocation: true
 
 **커뮤니티에서 시도해볼 만한 도메인 verifier:**
 - `us-law` (Cornell LII, CourtListener)
-- `pubmed` (PubMed E-utilities MCP)
-- `eu-law` (EUR-Lex)
+- `eu-law` (EUR-Lex, court-of-justice)
 - `case-law-uk` (BAILII)
-- `sec-filings` (EDGAR MCP)
+- `sec-filings` (EDGAR API)
+- `clinicaltrials` (ClinicalTrials.gov API v2, NCT 번호)
 - `financial-stats` (FRED, 한국은행 API)
+- `github-refs` (GitHub + npm + PyPI 레포/패키지 존재 확인)
 
 ---
 
@@ -337,8 +344,10 @@ citation-auditor/
 │   ├── citation-auditor/
 │   │   └── SKILL.md              # 주 오케스트레이션 skill
 │   └── verifiers/
-│       ├── general-web/SKILL.md  # WebSearch + WebFetch verifier
-│       └── korean-law/SKILL.md   # Korean-law MCP verifier
+│       ├── general-web/SKILL.md  # WebSearch + WebFetch 폴백 verifier
+│       ├── korean-law/SKILL.md   # Korean-law MCP verifier (법령+판례)
+│       ├── scholarly/SKILL.md    # CrossRef + arXiv + PubMed 학술 인용 verifier
+│       └── wikipedia/SKILL.md    # Wikipedia REST API verifier (영문+한국어)
 ├── citation_auditor/             # Python 유틸 패키지 (결정론 전용)
 │   ├── __main__.py               # CLI 진입점: chunk|aggregate|render|korean_law
 │   ├── chunking.py               # 마크다운 AST 청킹, 문단 오버랩
@@ -381,6 +390,12 @@ citation-auditor/
 - 서드파티 verifier 확장 계약
 - 마크다운-in/마크다운-out, 하류 파이프라인 수정 0
 - 사실/환각 혼합 의견서 실전 E2E 10/10 정확 분류
+
+**v1.1 (출시 — 2026-04-22)**
+- `scholarly` verifier: CrossRef/arXiv/PubMed 무료 API로 DOI/arXiv ID/PMID 학술 인용 검증
+- `wikipedia` verifier: Wikipedia REST API(영문+한국어)로 일반 지식 사실 검증
+- 영문 README 전면 개편: 법률 외 도메인(의료/금융/학술/역사/저널리즘) 예시 포함, 영어권 독자도 바로 공감 가능
+- 번들 verifier 전부 **무료 + 무인증**: API 키 0건
 
 **v1.x (계획)**
 - 생성 직후 자동 감사를 위한 `SubagentStop` hook

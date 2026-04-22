@@ -125,10 +125,16 @@ Today a careful reviewer spends 10–30 minutes per document spot-checking each 
 
 | Verifier | Authority | Pattern Matches | Mechanism |
 |---|:---:|---|---|
-| **`korean-law`** | 1.0 | 제N조, 주요 법령명, 판례번호 | Korean-law MCP → statute text comparison (조/항/호 granularity) + precedent existence check + title-based topic mismatch detection |
-| **`general-web`** | 0.5 | `.*` (fallback for all claims) | WebSearch → select top 3 authoritative URLs → WebFetch each → LLM-based claim adjudication |
+| **`korean-law`** | 1.0 | 제N조, major Korean statute names, case numbers (`YYYY다/가/도…NNNNN`) | Korean-law MCP → statute text comparison (조/항/호 granularity) + precedent existence check + title-based topic mismatch detection |
+| **`scholarly`** | 0.9 | DOI (`10.XXXX/...`), arXiv IDs, PMID, structured journal citations | CrossRef + arXiv + PubMed E-utilities free APIs → citation existence and metadata (title/authors/year/journal) alignment check |
+| **`wikipedia`** | 0.7 | Historical/biographical/founding-year language patterns | Wikipedia REST summary API (EN + KO) → entity page lookup → specific-fact cross-check, full-article WebFetch when summary is insufficient |
+| **`general-web`** | 0.5 | `.*` (fallback for everything else) | WebSearch → select top 3 authoritative URLs → WebFetch each → LLM-based claim adjudication |
 
-**Verdict aggregation:** when multiple verifiers match the same claim, the higher-authority verdict wins. Equal-authority conflicts resolve to `❓` (conflict signal, not false confidence).
+**Routing order:** `suggested_verifier` declared by the claim extractor → regex pattern match across loaded verifier skills → `general-web` fallback. When multiple verifiers match a single claim, all run in parallel via Task tool subagent dispatch.
+
+**Verdict aggregation:** when multiple verifiers produce verdicts for the same claim, the higher-authority verdict wins. Equal-authority conflicts resolve to `❓` (conflict signal, not false confidence).
+
+**Free, no-API-key design:** every bundled verifier uses either a Claude Code MCP (korean-law) or free public APIs without authentication (CrossRef, arXiv, PubMed, Wikipedia, general WebSearch/WebFetch). No setup beyond installing the plugin.
 
 ---
 
@@ -176,68 +182,71 @@ Output is the same file with `**[✅ verifier-name]**` / `**[⚠️ verifier-nam
 
 ## Live Example
 
-The snippet below is from the **actual end-to-end test run** used to validate v1.0 — a Korean game-industry legal memo mixing real and fabricated citations. We show it in Korean because that's the authentic run; the same pipeline applies to any language and domain provided a suitable verifier skill is loaded (see [Extending with Custom Verifiers](#extending-with-custom-verifiers)).
+The following is an illustrative synthetic example showing the pipeline on an English-language briefing draft. With the bundled `general-web` verifier, every claim below is routed through WebSearch + WebFetch against authoritative sources.
 
-Non-Korean-speaking readers: every Korean line below is a factual or citation-bearing claim. The verifier proved `⚠️` / `❓` / `✅` judgments using Korean statute text, precedent search, and Korean web sources — the same way a `us-law` verifier would use Westlaw/CourtListener, or a `pubmed` verifier would use PubMed.
-
-**Input** — an AI-drafted legal memo with a mix of real and fabricated citations:
+**Input** — an AI-drafted briefing with a mix of real, partially-true, and fabricated claims:
 
 ```markdown
-계약의 유효성 판단에 있어 민법 제103조는 선량한 풍속 기타 사회질서에
-위반한 사항을 내용으로 하는 법률행위는 무효로 한다고 규정한다.
+The Supreme Court held in Miranda v. Arizona, 384 U.S. 436 (1966),
+that custodial suspects must be informed of their rights before
+interrogation.
 
-게임산업진흥에 관한 법률 제300조 제5항은 확률형 아이템의 개별 확률을
-소수점 다섯 자리까지 공시할 것을 의무화한다고 규정한다.
+GDPR Article 17 establishes the right to erasure, commonly known as
+the "right to be forgotten."
 
-대법원 2023다302036 판결은 확률형 아이템 소비자 보호 의무 위반 시
-사업자의 손해배상 책임을 인정한 선례이다.
+A 2023 MIT study found that 73% of software engineers now use AI
+coding assistants daily.
 
-2023년 한국 게임 시장 규모는 약 22조 원으로, 전년 대비 15% 성장하였다.
+The Treaty of Westphalia was signed in 1653, ending the Thirty
+Years' War.
+
+Industry analysts expect the AI regulation landscape to loosen
+substantially by late 2026.
 ```
 
 **Annotated output after `/citation-auditor:audit`:**
 
 ```markdown
-계약의 유효성 판단에 있어 민법 제103조는 선량한 풍속 기타 사회질서에
-위반한 사항을 내용으로 하는 법률행위는 무효로 한다고 규정한다.
-**[✅ korean-law]**
+The Supreme Court held in Miranda v. Arizona, 384 U.S. 436 (1966),
+that custodial suspects must be informed of their rights before
+interrogation. **[✅ general-web]**
 
-게임산업진흥에 관한 법률 제300조 제5항은 확률형 아이템의 개별 확률을
-소수점 다섯 자리까지 공시할 것을 의무화한다고 규정한다.
-**[⚠️ korean-law]**
+GDPR Article 17 establishes the right to erasure, commonly known as
+the "right to be forgotten." **[✅ general-web]**
 
-대법원 2023다302036 판결은 확률형 아이템 소비자 보호 의무 위반 시
-사업자의 손해배상 책임을 인정한 선례이다.
-**[⚠️ korean-law]**
+A 2023 MIT study found that 73% of software engineers now use AI
+coding assistants daily. **[❓ general-web]**
 
-2023년 한국 게임 시장 규모는 약 22조 원으로, 전년 대비 15% 성장하였다.
-**[⚠️ general-web]**
+The Treaty of Westphalia was signed in 1653, ending the Thirty
+Years' War. **[⚠️ general-web]**
+
+Industry analysts expect the AI regulation landscape to loosen
+substantially by late 2026.
 
 ## Audit Report
 
-### Claim 2
-- Verdict: contradicted
-- Verifier: korean-law
-- Rationale: 게임산업진흥에 관한 법률에 제300조는 존재하지 않습니다.
-
 ### Claim 3
-- Verdict: contradicted
-- Verifier: korean-law
-- Rationale: 사건번호는 확인되지만, 판례의 실제 쟁점이 주장과 다릅니다.
-  (판례 요지: "이 사건 확약서, 이 사건 특약사항은 모두 민법 제103조에서
-  정한 반사회적 법률행위에 해당하여 무효에 해당함")
-- Evidence: law.go.kr 판례 검색 결과 ID 245007
+- Verdict: unknown
+- Verifier: general-web
+- Rationale: No MIT publication matching "73% of engineers use AI
+  coding assistants daily" was located. A widely cited 2024 GitHub
+  survey reports ~92%, but attribution to MIT and the exact 73%
+  figure could not be corroborated.
+- Evidence: https://github.blog/2024-...
 
 ### Claim 4
 - Verdict: contradicted
 - Verifier: general-web
-- Rationale: 2024 대한민국 게임백서에 따르면 2023년 국내 게임산업 매출은
-  약 22조 9,642억 원으로 시장 규모 수치는 근사하나, 전년 대비 성장률은
-  15%가 아닌 3.4%입니다.
-- Evidence: https://zdnet.co.kr/view/?no=20250317111753
+- Rationale: The Peace of Westphalia was signed in 1648, not 1653.
+  It did end the Thirty Years' War.
+- Evidence: https://www.britannica.com/event/Peace-of-Westphalia
 ```
 
-In live E2E testing on a 10-claim test opinion mixing real and fabricated citations, citation-auditor correctly classified all 10 claims including 5 hallucinations (missing statute articles, a missing case number, a precedent with mismatched topic, and a false growth rate with the correct figure surfaced in the rationale).
+The speculative sentence ("Industry analysts expect...") carries no badge — it is excluded from the audit surface by design. See [Verification Boundary](#verification-boundary).
+
+### End-to-End Validation
+
+v1.0 was validated against a **10-claim legal memo** (mixed real and fabricated citations, Korean legal domain): **10/10 claims correctly classified**, surfacing 5 distinct hallucinations — a non-existent statute article, a second non-existent statute article, a non-existent case number, a real case number with a mismatched topic, and a false growth-rate claim (with the correct figure surfaced in the rationale). The full test artifact is preserved in `fixtures/` and reproducible by dropping it into the `/citation-auditor:audit` slash command with the `korean-law` verifier loaded.
 
 ---
 
@@ -300,11 +309,12 @@ Full specification including the JSON input/output contract is in [skills/README
 
 **Ideas for domain verifiers** the community could ship:
 - `us-law` (Cornell LII, CourtListener)
-- `pubmed` (PubMed E-utilities MCP)
-- `eu-law` (EUR-Lex)
+- `eu-law` (EUR-Lex, court-of-justice)
 - `case-law-uk` (BAILII)
-- `sec-filings` (EDGAR MCP)
+- `sec-filings` (EDGAR API)
+- `clinicaltrials` (ClinicalTrials.gov API v2 for NCT numbers)
 - `financial-stats` (FRED, BoK API)
+- `github-refs` (GitHub + npm + PyPI package/repo existence)
 
 ---
 
@@ -343,8 +353,10 @@ citation-auditor/
 │   ├── citation-auditor/
 │   │   └── SKILL.md              # Primary orchestration skill
 │   └── verifiers/
-│       ├── general-web/SKILL.md  # WebSearch + WebFetch verifier
-│       └── korean-law/SKILL.md   # Korean-law MCP verifier
+│       ├── general-web/SKILL.md  # WebSearch + WebFetch fallback verifier
+│       ├── korean-law/SKILL.md   # Korean-law MCP verifier (statute + precedent)
+│       ├── scholarly/SKILL.md    # CrossRef + arXiv + PubMed citation verifier
+│       └── wikipedia/SKILL.md    # Wikipedia REST API verifier (EN + KO)
 ├── citation_auditor/             # Python utility package (deterministic only)
 │   ├── __main__.py               # CLI entry: chunk|aggregate|render|korean_law
 │   ├── chunking.py               # Markdown AST chunking with paragraph overlap
@@ -387,6 +399,12 @@ Runtime Python dependencies are intentionally minimal: `pydantic` and `marko`. N
 - Third-party verifier extension contract
 - Markdown-in / markdown-out; zero downstream pipeline modification
 - 10/10 accuracy on live E2E test of a mixed real/fabricated citation opinion
+
+**v1.1 (shipped — 2026-04-22)**
+- `scholarly` verifier: DOI, arXiv, PMID citation verification via CrossRef/arXiv/PubMed free APIs
+- `wikipedia` verifier: general-knowledge fact verification via Wikipedia REST API (EN + KO)
+- Bilingual README overhaul with cross-domain examples (legal / medical / financial / academic / journalistic)
+- All bundled verifiers now free & no-auth: no API keys required for any verifier
 
 **v1.x (planned)**
 - `SubagentStop` hook for automatic post-generation audit

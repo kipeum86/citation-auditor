@@ -2,6 +2,32 @@
 
 All notable changes to citation-auditor are documented here. This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] — 2026-04-22
+
+### Added
+- **`scholarly` verifier** (authority 0.9): verifies academic and scientific citations against free public APIs without any authentication.
+  - DOI lookup via CrossRef (`api.crossref.org/works/<DOI>`)
+  - arXiv ID lookup via `arxiv.org/abs/<id>`
+  - PMID lookup via PubMed E-utilities (`eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi`)
+  - Structured journal citation search via CrossRef title+journal+year filter
+  - Catches fabricated DOIs, nonexistent PMIDs, real DOIs with wrong metadata (authors/year/journal mismatch)
+- **`wikipedia` verifier** (authority 0.7): verifies general-knowledge facts (historical events, biographical details, founding years, treaty dates, organization leadership) against Wikipedia's REST summary API.
+  - English Wikipedia primary, Korean Wikipedia for Korean-locale subjects
+  - Summary API first; full-article WebFetch when summary lacks the specific detail
+  - Catches fabricated entities (no such Wikipedia page), factually wrong dates, misattributed quotes
+- **README bilingual overhaul**: English README now explicitly demonstrates non-Korean, non-legal domains (medical, financial, scientific, historical, journalistic). The Live Example section uses an English-language briefing to demonstrate the pipeline for English-only readers; a separate "End-to-End Validation" note preserves the Korean legal 10/10 result as evidence.
+- Bundled Verifiers table now lists four verifiers with their patterns, authorities, and mechanisms.
+- Verification Boundary table switched to international English examples (Miranda, GDPR, HIPAA, Westphalia, Lancet) so the table communicates to an English audience first.
+
+### Changed
+- Community-verifier ideas list updated to exclude what was shipped (scholarly, wikipedia, pubmed) and include new candidates (`clinicaltrials`, `github-refs`, expanded legal-region coverage).
+
+### Notes
+- All new verifiers use only free, no-authentication public APIs. No API keys required for any bundled verifier.
+- New verifiers are pure skill files; no Python utility changes. The 29-test Python suite continues to pass unchanged.
+
+---
+
 ## [1.0.0] — 2026-04-22
 
 ### Highlights
