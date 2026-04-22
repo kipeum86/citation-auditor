@@ -139,8 +139,9 @@ uv run python -m citation_auditor chunk /tmp/test.md --max-tokens 3000
 
 ## Status
 
-- **v1.0 release prep** (실사용 E2E 폴리시 반영, 10개 테스트 claim 중 9개 분류 확인)
-- v1.x 예정: `SubagentStop` hook 자동 감사, feedback loop 모드, MCP tool form, OpenAI/기타 provider.
+- **v1.0.0 released** (2026-04-22). 실사용 E2E 10/10 claim 정확 분류.
+- 릴리스 노트: [CHANGELOG.md](CHANGELOG.md)
+- v1.x 예정: `SubagentStop` hook 자동 감사, feedback loop 모드, MCP tool form, OpenAI/기타 provider, Privacy(`ANTHROPIC_BASE_URL` + `local_only`) 실환경 E2E 검증.
 
 ## License
 
