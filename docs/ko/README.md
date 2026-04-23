@@ -126,6 +126,9 @@ Python 유틸 레이어(`python -m citation_auditor chunk|render|aggregate|korea
 | Verifier | Authority | Pattern 매칭 | 메커니즘 |
 |---|:---:|---|---|
 | **`korean-law`** | 1.0 | 제N조, 주요 한국 법령명, 판례 번호(`YYYY다/가/도…NNNNN`) | Korean-law MCP로 조문 원문 비교(조/항/호 단위) + 판례 사건번호 존재 확인 + 검색 결과 제목 기반 쟁점 불일치 탐지 |
+| **`us-law`** | 0.9 | `<title> U.S.C. § <section>`, `<title> C.F.R. § <part>.<section>`, SCOTUS 리포터 인용(`<vol> U.S. <page>`), 사건명(`A v. B`) | Cornell LII(U.S.C./C.F.R.) + CourtListener v4 무료 REST(SCOTUS 의견) → 표준 페이지 WebFetch → WebFetch가 비거나 차단 시 WebSearch fallback → claim 본문 비교 |
+| **`uk-law`** | 0.9 | UK neutral citation(UKSC, UKHL, UKPC, EWCA Civ/Crim, EWHC, UKUT), 사건명(`X v Y`), UK 법률명(`<Name> Act <year>`) | BAILII(판례) + legislation.gov.uk(법률) → 표준 페이지 WebFetch → WebFetch가 비거나 차단 시 WebSearch fallback → claim 본문 비교 |
+| **`eu-law`** | 0.9 | CELEX 번호, `Regulation (EU) YYYY/N`, `Directive YYYY/N/EU`, 명명된 법령(GDPR, DSA, DMA, AI Act, eIDAS, MiCA, NIS 2, DSM, Data Act) | EUR-Lex(CELEX) → 빈 응답 시 ELI 별칭 재시도 → WebSearch fallback → 법령 또는 조문 단위 claim 비교 |
 | **`scholarly`** | 0.9 | DOI(`10.XXXX/...`), arXiv ID, PMID, 구조화된 저널 인용 | CrossRef + arXiv + PubMed E-utilities 무료 API로 논문 존재 여부와 메타데이터(제목/저자/연도/저널) 일치 검증 |
 | **`wikipedia`** | 0.7 | 역사·전기·설립연도 류 문장 패턴 | Wikipedia REST summary API (영문 + 한국어) → 엔터티 항목 조회 → 특정 사실 교차 확인, 요약으로 부족하면 전체 본문 WebFetch |
 | **`general-web`** | 0.5 | `.*` (나머지 모든 claim의 fallback) | WebSearch로 상위 3개 권위 있는 URL 선정 → WebFetch로 본문 수집 → LLM 기반 claim 판정 |
@@ -134,7 +137,9 @@ Python 유틸 레이어(`python -m citation_auditor chunk|render|aggregate|korea
 
 **Verdict 집계 정책:** 한 claim에 여러 verifier가 verdict를 내면 **authority 가중치**가 높은 쪽이 우선. 동일 authority 충돌은 `❓`(억지 verdict 금지).
 
-**API 키 0건 설계:** 번들된 모든 verifier는 Claude Code MCP(korean-law) 또는 인증 없는 공공 API(CrossRef, arXiv, PubMed, Wikipedia, WebSearch/WebFetch)만 사용합니다. 플러그인 설치 외에 추가 설정이 필요 없습니다.
+**API 키 0건 설계:** 번들된 모든 verifier는 Claude Code MCP(korean-law) 또는 인증 없는 공공 API(Cornell LII, CourtListener, BAILII, legislation.gov.uk, EUR-Lex, CrossRef, arXiv, PubMed, Wikipedia, WebSearch/WebFetch)만 사용합니다. 플러그인 설치 외에 추가 설정이 필요 없습니다.
+
+**WebSearch fallback (us-law / uk-law / eu-law):** 이 세 verifier는 표준 WebFetch가 권한 거부, anti-bot 차단(BAILII는 Anubis 페이지 반환), 또는 JS 렌더 셸로 빈 응답을 반환할 때(EUR-Lex) 도메인 한정 `WebSearch`(예: `site:law.cornell.edu`, `site:bailii.org`, `site:eur-lex.europa.eu`)로 fallback합니다. WebFetch가 제한되는 실환경에서도 verdict 정확도를 유지합니다.
 
 ---
 
@@ -145,7 +150,7 @@ Python 유틸 레이어(`python -m citation_auditor chunk|render|aggregate|korea
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) 설치 및 정상 동작
 - Python 3.11+ 와 [`uv`](https://docs.astral.sh/uv/)가 `PATH`에 있어야 함
 - (`korean-law` verifier 사용 시) Korean-law MCP 서버가 Claude Code 세션에 연결돼 있어야 함
-- (`general-web` verifier 사용 시) WebFetch + WebSearch가 세션에서 사용 가능해야 함
+- (`us-law` / `uk-law` / `eu-law` / `general-web` verifier 사용 시) WebFetch + WebSearch가 세션에서 사용 가능해야 함
 
 ### 설치
 
@@ -241,6 +246,8 @@ scope 선택 프롬프트가 뜨면 **User scope** 선택. User scope는 `~/.cla
 
 실전 E2E 테스트에서, 사실 인용과 환각 인용이 섞인 10개 claim짜리 게임·법률 의견서에 대해 **10/10 정확 분류**. 환각 5건 모두 포착(존재하지 않는 조문 2건, 존재하지 않는 사건번호 1건, 주제 불일치 판례 1건, 성장률 오류 1건 — 마지막은 정확한 수치까지 rationale에 제시).
 
+v1.2에서는 새 번들 verifier 3종(`us-law`, `uk-law`, `eu-law`)을 추가하고 미국·영국·EU 법역 혼합 6 claim 영문 브리핑(`fixtures/v1.2-global-legal.md`)으로 재검증 — **6/6 정확 분류**. 검증 과정에서 v1.2 WebSearch fallback 설계가 처리한 실환경 4개 시나리오 확인: Cornell LII WebFetch 거부, BAILII Anubis anti-bot 차단, EUR-Lex JS 렌더 셸 빈 응답, 구조적으로 불가능한 가공 인용(`[2024] UKSC 9876`, `CELEX 39999L8888`). fixture를 `/citation-auditor:audit`에 넣고 3개 새 verifier를 로드하면 재현 가능합니다.
+
 ---
 
 ## 감사 대상 범위
@@ -299,13 +306,13 @@ disable-model-invocation: true
 전체 규격(JSON 입출력 계약 포함)은 [skills/README.md](../../skills/README.md) 참조. 완성된 레퍼런스 구현은 번들 `korean-law` verifier: [skills/verifiers/korean-law/SKILL.md](../../skills/verifiers/korean-law/SKILL.md).
 
 **커뮤니티에서 시도해볼 만한 도메인 verifier:**
-- `us-law` (Cornell LII, CourtListener)
-- `eu-law` (EUR-Lex, court-of-justice)
-- `case-law-uk` (BAILII)
-- `sec-filings` (EDGAR API)
+- `sec-filings` (EDGAR API: 10-K/10-Q/8-K filing, Rule 인용)
 - `clinicaltrials` (ClinicalTrials.gov API v2, NCT 번호)
+- `github-refs` (GitHub + npm + PyPI 레포/패키지 존재 확인, NVD CVE)
 - `financial-stats` (FRED, 한국은행 API)
-- `github-refs` (GitHub + npm + PyPI 레포/패키지 존재 확인)
+- `cjeu-cases` (Regulation/Directive 외 EU 사법재판소 판례)
+- `patents` (USPTO PatentsView, EPO)
+- `pubmed-clinical` (`scholarly` 메타데이터 외 PubMed 본문 교차 확인)
 
 ---
 
@@ -346,6 +353,9 @@ citation-auditor/
 │   └── verifiers/
 │       ├── general-web/SKILL.md  # WebSearch + WebFetch 폴백 verifier
 │       ├── korean-law/SKILL.md   # Korean-law MCP verifier (법령+판례)
+│       ├── us-law/SKILL.md       # Cornell LII + CourtListener (USC, CFR, SCOTUS)
+│       ├── uk-law/SKILL.md       # BAILII + legislation.gov.uk (neutral citation, statute)
+│       ├── eu-law/SKILL.md       # EUR-Lex (CELEX, Regulation, Directive, 명명된 법령)
 │       ├── scholarly/SKILL.md    # CrossRef + arXiv + PubMed 학술 인용 verifier
 │       └── wikipedia/SKILL.md    # Wikipedia REST API verifier (영문+한국어)
 ├── citation_auditor/             # Python 유틸 패키지 (결정론 전용)

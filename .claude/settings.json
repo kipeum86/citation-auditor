@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:law.cornell.edu)",
+      "WebFetch(domain:courtlistener.com)",
+      "WebFetch(domain:www.courtlistener.com)",
+      "WebFetch(domain:bailii.org)",
+      "WebFetch(domain:www.bailii.org)",
+      "WebFetch(domain:legislation.gov.uk)",
+      "WebFetch(domain:www.legislation.gov.uk)",
+      "WebFetch(domain:eur-lex.europa.eu)",
+      "WebFetch(domain:clinicaltrials.gov)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:registry.npmjs.org)",
+      "WebFetch(domain:pypi.org)",
+      "WebFetch(domain:services.nvd.nist.gov)",
+      "WebFetch(domain:www.sec.gov)",
+      "WebFetch(domain:data.sec.gov)",
+      "WebFetch(domain:efts.sec.gov)"
+    ]
+  }
+}

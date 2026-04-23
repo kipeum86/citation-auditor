@@ -2,6 +2,27 @@
 
 All notable changes to citation-auditor are documented here. This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] — 2026-04-23
+
+### Added
+- **`us-law` verifier** (authority 0.9): verifies US legal citations against Cornell Law School's Legal Information Institute (U.S.C., C.F.R.) and CourtListener's free v4 REST API (SCOTUS opinions by reporter or case name). Catches fabricated U.S.C./C.F.R. sections, non-existent SCOTUS reporter citations, real cases with mismatched holdings.
+- **`uk-law` verifier** (authority 0.9): verifies UK legal citations against BAILII (case law via neutral citations — UKSC, UKHL, UKPC, EWCA Civ/Crim, EWHC, UKUT) and legislation.gov.uk (statutes). Handles pre-2001 back-assigned neutral citations (e.g., Donoghue v Stevenson `[1932] UKHL 100`).
+- **`eu-law` verifier** (authority 0.9): verifies EU legal citations against EUR-Lex via CELEX numbers. Includes named-act lookup table for GDPR, DSA, DMA, AI Act, eIDAS, MiCA, NIS 2, DSM Copyright Directive, Data Act. Catches fabricated CELEX numbers, non-existent articles, real regulations with wrong attributed content.
+- **WebSearch fallback protocol** in all three new verifiers: when canonical WebFetch is permission-denied, blocked by anti-bot interstitials (BAILII Anubis), or returns a JS-rendered shell with empty body (EUR-Lex), verifiers fall back to domain-scoped WebSearch (`site:law.cornell.edu`, `site:bailii.org`, `site:eur-lex.europa.eu`) before returning `unknown`. EU verifier also retries the ELI alias (`/eli/reg/<year>/<n>/oj/eng`) before WebSearch.
+- **Project-level `.claude/settings.json`** with WebFetch allowlist for the new domains (law.cornell.edu, courtlistener.com, bailii.org, legislation.gov.uk, eur-lex.europa.eu) so subagents have first-class access without per-call permission prompts.
+
+### Validation
+- E2E: `fixtures/v1.2-global-legal.md` — 6-claim English-language briefing mixing US, UK, and EU jurisdictions with three real and three fabricated citations. **6/6 correctly classified** (3 verified, 3 contradicted). Annotated output preserved at `fixtures/v1.2-global-legal.audited.md`.
+- WebSearch fallback proven necessary in 4 of 6 claims (Cornell LII denied, BAILII Anubis-blocked, EUR-Lex empty body) — confirms the fallback is not a defensive nicety but a real-world primary path.
+
+### Notes
+- Recipes (`clinicaltrials`, `github-refs`, `sec-edgar`) explored during v1.2 design were deferred to v1.3 along with the broader question of how to ship and label community-contributable verifiers. See v1.3 roadmap.
+- All three new verifiers use only free, no-authentication public sources. No API keys required.
+- Python utility layer unchanged. 29-test suite continues to pass.
+- Rationales remain Korean per v1.0 convention.
+
+---
+
 ## [1.1.0] — 2026-04-22
 
 ### Added

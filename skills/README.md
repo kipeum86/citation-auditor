@@ -81,3 +81,13 @@ The primary `citation-auditor` skill routes claims in this order:
 3. fallback to `general-web`
 
 If multiple skills match by pattern, all of them may run and Python will aggregate the returned verdicts by authority.
+
+## Reference Implementations
+
+The bundled verifiers are concrete examples of the contract above. When designing your own verifier, the closest pattern depends on your data source:
+
+- **Authoritative MCP server**: see [`korean-law`](verifiers/korean-law/SKILL.md) — illustrates how to chain MCP tool calls (statute lookup, precedent search) and turn them into verdict JSON.
+- **Free public REST API + canonical-page WebFetch**: see [`us-law`](verifiers/us-law/SKILL.md), [`uk-law`](verifiers/uk-law/SKILL.md), [`eu-law`](verifiers/eu-law/SKILL.md) — illustrates deterministic URL construction, WebFetch as primary path, and **WebSearch fallback** for environments where WebFetch is permission-denied, blocked by anti-bot interstitials, or returns empty bodies on JS-rendered pages.
+- **Pure REST metadata APIs (no-auth)**: see [`scholarly`](verifiers/scholarly/SKILL.md) — illustrates how to combine multiple APIs (CrossRef, arXiv, PubMed) under one verifier umbrella.
+- **Lightweight summary API + targeted full-article fallback**: see [`wikipedia`](verifiers/wikipedia/SKILL.md) — illustrates a two-tier lookup strategy that minimizes WebFetch volume.
+- **Generic WebSearch + WebFetch fallback**: see [`general-web`](verifiers/general-web/SKILL.md) — the catch-all pattern when no domain-specific source exists.

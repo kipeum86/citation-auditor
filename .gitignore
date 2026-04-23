@@ -9,3 +9,8 @@ build/
 
 # private session logs (kp-nblm sync target — never commit)
 docs/session-log-*.md
+docs/build-log-*.md
+docs/codex-prompt-*.md
+docs/*-mcp-resolution*.md
+logs/
+*.log

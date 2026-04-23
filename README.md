@@ -126,6 +126,9 @@ Today a careful reviewer spends 10–30 minutes per document spot-checking each 
 | Verifier | Authority | Pattern Matches | Mechanism |
 |---|:---:|---|---|
 | **`korean-law`** | 1.0 | 제N조, major Korean statute names, case numbers (`YYYY다/가/도…NNNNN`) | Korean-law MCP → statute text comparison (조/항/호 granularity) + precedent existence check + title-based topic mismatch detection |
+| **`us-law`** | 0.9 | `<title> U.S.C. § <section>`, `<title> C.F.R. § <part>.<section>`, SCOTUS reporter citations (`<vol> U.S. <page>`), case names (`A v. B`) | Cornell LII (U.S.C./C.F.R.) + CourtListener v4 free REST (SCOTUS opinions) → canonical-page WebFetch → WebSearch fallback when WebFetch is empty/denied → claim text comparison |
+| **`uk-law`** | 0.9 | UK neutral citations (UKSC, UKHL, UKPC, EWCA Civ/Crim, EWHC, UKUT), case names (`X v Y`), UK statute names (`<Name> Act <year>`) | BAILII (case law) + legislation.gov.uk (statutes) → canonical-page WebFetch → WebSearch fallback when WebFetch is empty/denied → claim text comparison |
+| **`eu-law`** | 0.9 | CELEX numbers, `Regulation (EU) YYYY/N`, `Directive YYYY/N/EU`, named acts (GDPR, DSA, DMA, AI Act, eIDAS, MiCA, NIS 2, DSM, Data Act) | EUR-Lex via CELEX → ELI alias retry on empty body → WebSearch fallback → act/article-level claim comparison |
 | **`scholarly`** | 0.9 | DOI (`10.XXXX/...`), arXiv IDs, PMID, structured journal citations | CrossRef + arXiv + PubMed E-utilities free APIs → citation existence and metadata (title/authors/year/journal) alignment check |
 | **`wikipedia`** | 0.7 | Historical/biographical/founding-year language patterns | Wikipedia REST summary API (EN + KO) → entity page lookup → specific-fact cross-check, full-article WebFetch when summary is insufficient |
 | **`general-web`** | 0.5 | `.*` (fallback for everything else) | WebSearch → select top 3 authoritative URLs → WebFetch each → LLM-based claim adjudication |
@@ -134,7 +137,9 @@ Today a careful reviewer spends 10–30 minutes per document spot-checking each 
 
 **Verdict aggregation:** when multiple verifiers produce verdicts for the same claim, the higher-authority verdict wins. Equal-authority conflicts resolve to `❓` (conflict signal, not false confidence).
 
-**Free, no-API-key design:** every bundled verifier uses either a Claude Code MCP (korean-law) or free public APIs without authentication (CrossRef, arXiv, PubMed, Wikipedia, general WebSearch/WebFetch). No setup beyond installing the plugin.
+**Free, no-API-key design:** every bundled verifier uses either a Claude Code MCP (korean-law) or free public APIs without authentication (Cornell LII, CourtListener, BAILII, legislation.gov.uk, EUR-Lex, CrossRef, arXiv, PubMed, Wikipedia, general WebSearch/WebFetch). No setup beyond installing the plugin.
+
+**WebSearch fallback (us-law / uk-law / eu-law):** these three verifiers fall back to domain-scoped `WebSearch` (e.g., `site:law.cornell.edu`, `site:bailii.org`, `site:eur-lex.europa.eu`) when the canonical WebFetch is permission-denied, blocked by anti-bot interstitials (BAILII serves an Anubis page), or returns a JS-rendered shell with empty body (EUR-Lex). The fallback preserves verdict accuracy in real-world environments where WebFetch is restricted.
 
 ---
 
@@ -145,7 +150,7 @@ Today a careful reviewer spends 10–30 minutes per document spot-checking each 
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed and working
 - Python 3.11+ and [`uv`](https://docs.astral.sh/uv/) on `PATH`
 - (For `korean-law` verifier) Korean-law MCP server connected to your Claude Code session
-- (For `general-web` verifier) WebFetch + WebSearch available in your session
+- (For `us-law` / `uk-law` / `eu-law` / `general-web` verifiers) WebFetch + WebSearch available in your session
 
 ### Install
 
@@ -248,6 +253,8 @@ The speculative sentence ("Industry analysts expect...") carries no badge — it
 
 v1.0 was validated against a **10-claim legal memo** (mixed real and fabricated citations, Korean legal domain): **10/10 claims correctly classified**, surfacing 5 distinct hallucinations — a non-existent statute article, a second non-existent statute article, a non-existent case number, a real case number with a mismatched topic, and a false growth-rate claim (with the correct figure surfaced in the rationale). The full test artifact is preserved in `fixtures/` and reproducible by dropping it into the `/citation-auditor:audit` slash command with the `korean-law` verifier loaded.
 
+v1.2 added the three new bundled legal verifiers (`us-law`, `uk-law`, `eu-law`) and was validated against a **6-claim global-legal briefing** (`fixtures/v1.2-global-legal.md`) mixing US, UK, and EU jurisdictions with three real and three fabricated citations: **6/6 correctly classified**. The validation surfaced four real-world environment behaviors that the v1.2 WebSearch fallback handles correctly — Cornell LII WebFetch denial, BAILII Anubis anti-bot interstitial, EUR-Lex JS-rendered shell with empty body, and structurally impossible neutral citations (`[2024] UKSC 9876`, `CELEX 39999L8888`). Reproducible by dropping the fixture into `/citation-auditor:audit` with the three new verifiers loaded.
+
 ---
 
 ## Verification Boundary
@@ -308,13 +315,13 @@ The body describes the verification protocol: how to accept a claim as JSON, whi
 Full specification including the JSON input/output contract is in [skills/README.md](skills/README.md). A complete working reference is the bundled `korean-law` verifier at [skills/verifiers/korean-law/SKILL.md](skills/verifiers/korean-law/SKILL.md).
 
 **Ideas for domain verifiers** the community could ship:
-- `us-law` (Cornell LII, CourtListener)
-- `eu-law` (EUR-Lex, court-of-justice)
-- `case-law-uk` (BAILII)
-- `sec-filings` (EDGAR API)
+- `sec-filings` (EDGAR API for 10-K/10-Q/8-K filings, Rule citations)
 - `clinicaltrials` (ClinicalTrials.gov API v2 for NCT numbers)
+- `github-refs` (GitHub + npm + PyPI package/repo existence, NVD CVE)
 - `financial-stats` (FRED, BoK API)
-- `github-refs` (GitHub + npm + PyPI package/repo existence)
+- `cjeu-cases` (Court of Justice of the European Union case law beyond Regulations/Directives)
+- `patents` (USPTO PatentsView, EPO)
+- `pubmed-clinical` (PubMed full-article cross-check beyond `scholarly` metadata)
 
 ---
 
@@ -355,6 +362,9 @@ citation-auditor/
 │   └── verifiers/
 │       ├── general-web/SKILL.md  # WebSearch + WebFetch fallback verifier
 │       ├── korean-law/SKILL.md   # Korean-law MCP verifier (statute + precedent)
+│       ├── us-law/SKILL.md       # Cornell LII + CourtListener verifier (USC, CFR, SCOTUS)
+│       ├── uk-law/SKILL.md       # BAILII + legislation.gov.uk verifier (neutral citations, statutes)
+│       ├── eu-law/SKILL.md       # EUR-Lex verifier (CELEX, Regulations, Directives, named acts)
 │       ├── scholarly/SKILL.md    # CrossRef + arXiv + PubMed citation verifier
 │       └── wikipedia/SKILL.md    # Wikipedia REST API verifier (EN + KO)
 ├── citation_auditor/             # Python utility package (deterministic only)
