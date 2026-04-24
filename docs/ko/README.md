@@ -2,7 +2,7 @@
 
 🌐 **언어**: [English](../../README.md) | **한국어**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](../../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](../../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-Apache_2.0-green.svg)](../../LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange.svg)](https://docs.anthropic.com/en/docs/claude-code)
@@ -12,7 +12,7 @@
 
 **citation-auditor**는 Claude Code 용 **확장형 팩트체크·인용 감사 레이어**입니다. AI 에이전트가 생성한 마크다운 출력에서 사실 주장을 추출하고, 도메인별 verifier 서브에이전트에게 검증을 위임한 뒤, 원본 마크다운에 배지(✅ / ⚠️ / ❓)와 `Audit Report`를 덧붙여 돌려줍니다.
 
-인용 정확도가 중요한 모든 AI 에이전트에서 사용하도록 설계했습니다 — **법률 의견서, 의료 요약, 금융 분석, 학술 브리프, 언론 기사 초안**. 기본 번들 verifier는 한국 법률(Korean-law MCP 기반)과 일반 웹 소스를 다루며, verifier 인터페이스는 서드파티 확장이 가능하도록 열려 있습니다.
+인용 정확도가 중요한 모든 AI 에이전트에서 사용하도록 설계했습니다 — **법률 의견서, 의료 요약, 금융 분석, 학술 브리프, 언론 기사 초안**. 번들 verifier 7종이 **한국법**(Korean-law MCP), **미국법**(Cornell LII + CourtListener), **영국법**(BAILII + legislation.gov.uk), **EU법**(EUR-Lex), **학술 인용**(CrossRef / arXiv / PubMed), **일반 지식**(Wikipedia), **임의의 웹 소스**(WebSearch + WebFetch)를 커버합니다. 전체 표는 [번들 verifier](#번들-verifier) 섹션 참조. Verifier 인터페이스는 서드파티 확장이 가능하도록 열려 있습니다.
 
 **"AI 신뢰 인프라"** 시리즈의 일부 — AI에 보내기 *전* redaction을 담당하는 `document-redactor`와 **짝을 이루는 "AI에서 받은 후" 검증 레이어**입니다.
 
@@ -444,6 +444,19 @@ citation-auditor/
 - `wikipedia` verifier: Wikipedia REST API(영문+한국어)로 일반 지식 사실 검증
 - 영문 README 전면 개편: 법률 외 도메인(의료/금융/학술/역사/저널리즘) 예시 포함, 영어권 독자도 바로 공감 가능
 - 번들 verifier 전부 **무료 + 무인증**: API 키 0건
+
+**v1.2 (출시 — 2026-04-23)**
+- `us-law` verifier: U.S.C. / C.F.R. (Cornell LII) + SCOTUS 판례 (CourtListener v4 무료 REST)
+- `uk-law` verifier: UK neutral citation — UKSC / UKHL / EWCA / EWHC (BAILII) + statute (legislation.gov.uk)
+- `eu-law` verifier: CELEX / Regulation / Directive / 명명된 법령 (GDPR, DSA, DMA, AI Act 등) via EUR-Lex
+- **WebSearch fallback protocol** 3종 동시 도입: 표준 WebFetch가 권한 거부, anti-bot 차단(BAILII Anubis), 또는 JS 렌더 셸 빈 응답(EUR-Lex) 시 도메인 한정 WebSearch로 재시도 후 `unknown` 반환
+- 프로젝트 레벨 `.claude/settings.json`의 verifier 도메인 WebFetch allowlist
+- 미국·영국·EU 혼합 영문 법률 브리핑 fixture로 **6/6 정확 분류**
+
+**v1.3 (출시 — 2026-04-24)**
+- `scripts/vendor-into.sh` — rsync 기반 idempotent vendor 스크립트. citation-auditor를 본인 소유 CC 프로젝트의 `.claude/` 디렉토리에 직접 복사 (플러그인 설치 스킵; git으로 버전 고정). `VENDOR.md` 스탬프에 버전·원본 commit·원본 태그·타임스탬프 기록.
+- README "다른 프로젝트에 벤더(vendor)하기" 섹션 (영문+한국어) — 플러그인 vs vendor 선택 기준
+- 오케스트레이션 skill: aggregate 입력 JSON 스키마 구체 예제 추가 (v1.2.0 실전 E2E 때 드러난 갭)
 
 **v1.x (계획)**
 - 생성 직후 자동 감사를 위한 `SubagentStop` hook

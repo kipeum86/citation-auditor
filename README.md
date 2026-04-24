@@ -2,7 +2,7 @@
 
 🌐 **Language**: **English** | [한국어](docs/ko/README.md)
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-Apache_2.0-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange.svg)](https://docs.anthropic.com/en/docs/claude-code)
@@ -12,7 +12,7 @@
 
 **citation-auditor** is a pluggable fact-check and citation audit layer for Claude Code. It takes markdown output from any AI agent, extracts factual claims, dispatches domain-specific verifier subagents, and returns the same markdown with inline verdict badges (✅ / ⚠️ / ❓) plus an appended Audit Report.
 
-Designed for agents that generate content requiring citation accuracy — **legal opinions, medical summaries, financial analyses, academic briefs, journalistic drafts**. Bundled verifiers cover Korean law (via Korean-law MCP) and general web sources; the verifier interface is designed for third-party extension.
+Designed for agents that generate content requiring citation accuracy — **legal opinions, medical summaries, financial analyses, academic briefs, journalistic drafts**. Seven bundled verifiers span **Korean law** (Korean-law MCP), **US law** (Cornell LII + CourtListener), **UK law** (BAILII + legislation.gov.uk), **EU law** (EUR-Lex), **academic citations** (CrossRef / arXiv / PubMed), **general-knowledge facts** (Wikipedia), and **arbitrary web sources** (WebSearch + WebFetch). See [Bundled Verifiers](#bundled-verifiers) for the full table. The verifier interface is designed for third-party extension.
 
 Part of the **AI Trust Infrastructure** series — the post-receive counterpart to `document-redactor`, which handles redaction *before* sending to AI.
 
@@ -453,6 +453,19 @@ Runtime Python dependencies are intentionally minimal: `pydantic` and `marko`. N
 - `wikipedia` verifier: general-knowledge fact verification via Wikipedia REST API (EN + KO)
 - Bilingual README overhaul with cross-domain examples (legal / medical / financial / academic / journalistic)
 - All bundled verifiers now free & no-auth: no API keys required for any verifier
+
+**v1.2 (shipped — 2026-04-23)**
+- `us-law` verifier: U.S.C. / C.F.R. (Cornell LII) + SCOTUS opinions (CourtListener v4 free REST)
+- `uk-law` verifier: UK neutral citations — UKSC / UKHL / EWCA / EWHC (BAILII) + statutes (legislation.gov.uk)
+- `eu-law` verifier: CELEX / Regulations / Directives / named acts like GDPR, DSA, DMA, AI Act (EUR-Lex)
+- **WebSearch fallback protocol** in all three: when the canonical WebFetch is permission-denied, blocked by anti-bot interstitials (BAILII Anubis), or returns a JS-rendered empty body (EUR-Lex), verifiers retry with domain-scoped WebSearch before returning `unknown`
+- Project-level `.claude/settings.json` WebFetch allowlist for verifier domains
+- 6/6 correctly classified on mixed US/UK/EU global-legal briefing fixture
+
+**v1.3 (shipped — 2026-04-24)**
+- `scripts/vendor-into.sh` — rsync-based idempotent vendor for copying citation-auditor into your own CC-based project's `.claude/` directory (skip plugin install; pin version via git). Each vendor produces a `VENDOR.md` stamp recording version, source commit, source tag, and timestamp.
+- README "Vendoring into another project" section (EN + KO) — when to pick plugin vs vendor
+- Orchestration skill: concrete JSON schema example added for aggregate input (surfaced during v1.2.0 full production pipeline E2E run)
 
 **v1.x (planned)**
 - `SubagentStop` hook for automatic post-generation audit
