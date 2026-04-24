@@ -185,6 +185,44 @@ scope 선택 프롬프트가 뜨면 **User scope** 선택. User scope는 `~/.cla
 
 ---
 
+## 다른 프로젝트에 벤더(vendor)하기
+
+본인이 이미 Claude Code로 운영하는 다른 agent 프로젝트(법률 의견서, 리서치, 콘텐츠 파이프라인 등)에 citation-auditor를 붙이고 싶고, 플러그인 설치보다 **"git clone하면 바로 동작"** 쪽이 더 편하다면, citation-auditor를 target 프로젝트의 `.claude/` 디렉토리에 직접 vendor 할 수 있습니다.
+
+**왜 플러그인 설치 대신 vendor?**
+- **플러그인 캐시 드리프트 없음.** CC 플러그인 캐시가 `/plugin update`로 새 버전을 못 잡는 경우가 있어 수동 sync가 필요. Vendor는 코드를 프로젝트 레포 안에 박아넣어 버전이 git log로 명시됨.
+- **포터블.** 본인이(또는 다른 머신의 미래 본인이) 해당 프로젝트 레포를 clone하면 citation-auditor도 함께 딸려옴. 별도 설치 의례 없음.
+- **버전 고정.** 업그레이드 시점을 프로젝트가 제어. vendor script 재실행 시에만 새 버전이 반영됨.
+
+**사용법:**
+
+```bash
+# citation-auditor 레포 안에서:
+git pull
+./scripts/vendor-into.sh /path/to/your-project
+```
+
+스크립트가 오케스트레이션 skill, 번들 verifier skill 전체, `/citation-auditor:audit` 슬래시 커맨드, Python 유틸 패키지를 target 프로젝트에 복사합니다. Idempotent — 같은 target에 재실행하면 최신 버전으로 덮어씀.
+
+**플래그:**
+- `--dry-run` — 실제 복사 없이 어떤 파일이 옮겨질지만 출력.
+- `--no-python` — Python 패키지 제외 (target이 이미 `citation-auditor`를 git 의존성으로 쓰거나 전역 설치 상태라면).
+
+**Vendor 후 할 일:**
+
+1. Target 프로젝트의 의존성 매니페스트(`pyproject.toml`, `requirements.txt` 등)에 `marko>=2.1.0`, `pydantic>=2.7.0` 추가 후 `uv sync` (또는 해당 패키지 매니저 동등 명령).
+2. 서브에이전트 WebFetch 호출 시 권한 프롬프트를 줄이려면 target 프로젝트의 `.claude/settings.json`의 `"permissions.allow"`에 `WebFetch(domain:...)` 엔트리 추가. 스크립트가 정확한 리스트를 출력합니다.
+3. Vendor된 파일 커밋: `git add .claude/ citation_auditor/ pyproject.toml && git commit -m "vendor: citation-auditor v1.3.0"`.
+
+각 vendor 사본에는 `.claude/skills/citation-auditor/VENDOR.md`에 **버전, 원본 commit SHA, 원본 태그, vendor 실행 시점** 스탬프가 찍힙니다. 이걸 보면 해당 프로젝트가 citation-auditor의 어떤 버전을 쓰고 있는지 한눈에 확인 가능.
+
+**어느 경로를 택할지:**
+- 대부분의 사용자 → **플러그인** (간단, `/plugin update`로 자동 업데이트).
+- 본인 소유 여러 프로젝트에서 citation-auditor를 돌리거나, 레포와 함께 코드가 따라다니길 원하면 → **vendor**.
+- 두 경로는 동일 환경에서 공존 가능. 프로젝트 내부 vendor된 skill이 전역 플러그인보다 우선 적용됩니다 (해당 프로젝트를 CC에서 열었을 때).
+
+---
+
 ## 실제 예시
 
 **입력** — AI가 초안한 법률 메모, 사실 인용과 환각 인용이 섞여 있음:

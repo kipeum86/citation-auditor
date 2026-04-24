@@ -2,6 +2,28 @@
 
 All notable changes to citation-auditor are documented here. This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] — 2026-04-24
+
+### Added
+- **`scripts/vendor-into.sh`** — rsync-based vendor script for copying citation-auditor into another CC-based project as local skills. Target receives `.claude/commands/audit.md`, `.claude/skills/citation-auditor/`, `.claude/skills/verifiers/*`, and the `citation_auditor/` Python package. Idempotent (re-run to update). Produces a `VENDOR.md` stamp in the target recording version, source commit, source tag, and timestamp.
+  - Flags: `--dry-run` (preview), `--no-python` (skip Python package).
+  - Pyproject dependency list and WebFetch allowlist are **printed as manual post-copy steps** rather than auto-merged, since target projects use varied TOML styles (uv, poetry, hatch, setuptools) that auto-merge can break.
+- **README section — "Vendoring into another project"** (both English and Korean mirror) documenting when to pick plugin vs vendor and the full vendoring workflow.
+
+### Fixed
+- **Orchestration skill `skills/citation-auditor/SKILL.md` step 11**: added the exact aggregate input JSON schema with a concrete example. Previously the skill described the *contents* of aggregate input but did not specify the top-level wrapper key is `verdicts`, forcing Claude to reverse-engineer the schema from `citation_auditor/models.py` during real `/audit` runs. Surfaced during v1.2.0 E2E validation on `fixtures/v1.2-global-legal.md`.
+
+### Validation
+- **v1.2.0 real `/audit` E2E** (executed before tagging v1.3.0): user ran `/citation-auditor:audit fixtures/v1.2-global-legal.md` in a live CC terminal, end-to-end through plugin install → orchestration skill → claim extraction → parallel verifier subagents → aggregate → render. All 6 claims correctly classified (3 verified, 3 contradicted). WebSearch fallback fired on 4 of 6 claims (Cornell denied, BAILII Anubis, EUR-Lex JS shell) — confirming the v1.2 fallback design is a real-world primary path, not a defensive nicety. This was the first time the full production pipeline (as opposed to component + simulation testing) was exercised end to end.
+- Vendor script dry-run + real copy verified into a temp target: 18 files copied (1 slash command, 1 orchestration skill, 7 verifier skills, 1 skills README, 7 Python files, 1 VENDOR.md stamp). Version parsing fixed to use `[[:space:]]` for BSD sed compatibility on macOS.
+
+### Notes
+- Plugin install path (`/plugin marketplace add kipeum86/citation-auditor`) is unchanged and remains the recommended path for most users. Vendoring is an additional path for self-contained integration into the author's own CC-based agent projects.
+- Python utility layer unchanged. 29-test suite continues to pass.
+- The untracked recipe drafts under `recipes/` (clinicaltrials, github-refs, sec-edgar) remain unchanged. The recipe/preset design direction was reassessed during v1.3 office-hours as low-value given the primarily-lawyer audience — deferred indefinitely.
+
+---
+
 ## [1.2.0] — 2026-04-23
 
 ### Added

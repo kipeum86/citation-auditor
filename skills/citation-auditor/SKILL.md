@@ -31,15 +31,37 @@ Audit the markdown file at `$0`.
 9. Require each verifier subagent to return only this JSON:
    `{ "label": "...", "rationale": "...", "supporting_urls": ["..."], "authority": 0.0 }`
 10. `supporting_urls` may contain either clickable source URLs or plain-language source references when no stable URL exists. Preserve them verbatim and do not invent clickable URLs for non-linkable sources such as precedent search-result IDs.
-11. Build aggregate input JSON locally:
-   - Include the full originating `chunk` object for each claim.
-   - Convert each verifier result into a full candidate verdict with:
-     - `claim` = extracted claim
-     - `verifier_name` = verifier skill name
-     - `authority` = returned authority
-     - `rationale` = returned rationale
-     - `label` = returned label
-     - `evidence` = `supporting_urls` mapped verbatim to `[{ "url": "<reference>" }]`
+11. Build aggregate input JSON locally. The exact top-level shape is `{ "verdicts": [ <bundle>, ... ] }` where each `<bundle>` covers one `(chunk, claim)` pair and holds all verifier candidates for that claim. Do not invent other top-level keys.
+
+    **Exact schema (copy this structure):**
+    ```json
+    {
+      "verdicts": [
+        {
+          "chunk": { "index": 0, "text": "<full chunk text>", "segments": [ { "chunk_start": 0, "chunk_end": 44, "document_start": 0, "document_end": 44 } ] },
+          "claim": { "text": "<claim sentence>", "sentence_span": { "start": 64, "end": 268 }, "claim_type": "citation", "suggested_verifier": "us-law" },
+          "candidates": [
+            {
+              "claim": { "text": "<same claim as above>", "sentence_span": { "start": 64, "end": 268 }, "claim_type": "citation", "suggested_verifier": "us-law" },
+              "verifier_name": "us-law",
+              "authority": 0.9,
+              "label": "contradicted",
+              "rationale": "<Korean rationale from verifier>",
+              "evidence": [ { "url": "https://..." } ]
+            }
+          ]
+        }
+      ]
+    }
+    ```
+
+    Rules:
+    - One bundle per `(chunk, claim)` pair. If the same claim has two verifiers, put both candidates inside the same bundle's `candidates` array — do NOT create a second bundle for the same claim.
+    - The top-level `claim` inside each bundle is the canonical claim; each candidate's `claim` must match it verbatim.
+    - `evidence` items require a non-empty `url` string. If the verifier returned `supporting_urls: []`, emit `"evidence": []` — do not emit `[{"url": ""}]`.
+    - `label` must be one of `verified` / `contradicted` / `unknown`.
+    - `authority` must match the verifier skill's declared authority value.
+
 12. Write that JSON to a temp file and run:
     `python -m citation_auditor aggregate <tmpfile>`
 13. Write the aggregate output to a temp file and run:

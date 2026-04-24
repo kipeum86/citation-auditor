@@ -185,6 +185,44 @@ Output is the same file with `**[✅ verifier-name]**` / `**[⚠️ verifier-nam
 
 ---
 
+## Vendoring into another project
+
+If you already use Claude Code with your own agent projects (legal writing, research, content pipelines) and prefer **"git clone and it just works"** over plugin installation, you can vendor citation-auditor directly into that project's `.claude/` directory.
+
+**Why vendor instead of installing the plugin?**
+- **No plugin cache drift.** The CC plugin cache occasionally fails to pick up a new release via `/plugin update`, forcing a manual marketplace sync. Vendoring pins the code inside your project repo, so the version is whatever your git log says it is.
+- **Portable.** Anyone (or future-you on a different machine) cloning your project repo gets citation-auditor along with it. No separate install step.
+- **Pinned version.** Your project controls when to upgrade. Run the vendor script again only when you want the new version.
+
+**How:**
+
+```bash
+# from inside the citation-auditor repo:
+git pull
+./scripts/vendor-into.sh /path/to/your-project
+```
+
+The script copies the orchestration skill, all bundled verifier skills, the `/citation-auditor:audit` slash command, and the Python utility package into your target project. Idempotent — re-running it on the same target just overwrites with the latest version.
+
+**Flags:**
+- `--dry-run` — show what would be copied without making changes.
+- `--no-python` — skip the Python package (if your target already has `citation-auditor` as a git dependency or installed globally).
+
+**After vendoring:**
+
+1. Add `marko>=2.1.0` and `pydantic>=2.7.0` to your target project's dependency manifest (`pyproject.toml`, `requirements.txt`, etc.), then run `uv sync` (or your package manager's equivalent).
+2. If you want subagent WebFetch calls to not prompt on every verifier source, copy the `WebFetch(domain:...)` allowlist entries into your target project's `.claude/settings.json` under `"permissions.allow"`. The script prints the exact list you need.
+3. Commit the vendored files: `git add .claude/ citation_auditor/ pyproject.toml && git commit -m "vendor: citation-auditor v1.3.0"`.
+
+Each vendored copy gets a `VENDOR.md` stamp at `.claude/skills/citation-auditor/VENDOR.md` recording the version, source commit SHA, source tag, and timestamp of the vendor run. Use this to tell at a glance which citation-auditor version a project is running.
+
+**Which path to pick:**
+- Most users → **plugin** (simpler, auto-update via `/plugin update`).
+- Running citation-auditor inside multiple of your own projects, or you want the code to travel with your repo → **vendor**.
+- Both paths can coexist in the same environment. Vendored skills inside a project take precedence over the globally installed plugin when you open that project in CC.
+
+---
+
 ## Live Example
 
 The following is an illustrative synthetic example showing the pipeline on an English-language briefing draft. With the bundled `general-web` verifier, every claim below is routed through WebSearch + WebFetch against authoritative sources.
