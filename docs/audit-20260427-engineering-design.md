@@ -233,9 +233,9 @@
 
 ### 4.4 실제 slash-command E2E fixture가 아직 없다
 
-상태: 부분 처리됨. `fixtures/v1.4-docx-legal.docx`와 `fixtures/v1.4-docx-legal.expected.md`를 추가했고, Python component suite에서 DOCX fixture 추출 순서를 검증한다. 실제 Claude Code slash-command 실행 결과는 아직 별도 확인이 필요하다.
+상태: 부분 처리됨. `fixtures/v1.4-docx-legal.docx`와 `fixtures/v1.4-docx-legal.expected.md`를 추가했고, Python component suite에서 DOCX fixture 추출 순서를 검증한다. Claude-run sidecar artifacts는 기대 label/location/summary와 일치한다. 다만 실제 slash-command 채팅 응답이 보고서 전문 대신 경로와 요약만 반환했는지는 transcript 확인이 필요하다.
 
-문제: Python 테스트는 55개로 늘었지만, v1.4.0 DOCX 경로는 실제 Claude Code slash command에서 아직 검증되지 않았다.
+문제: Python 테스트는 55개로 늘었고 DOCX sidecar artifact review도 통과했지만, v1.4.0 DOCX 경로의 실제 Claude Code slash-command transcript가 아직 repo에 기록되지 않았다.
 
 왜 중요한가: 이 프로젝트의 위험 지점은 Python 유틸보다 skill orchestration이다. component test가 통과해도 skill이 temp path, aggregate schema, final report 경로를 잘못 처리할 수 있다.
 

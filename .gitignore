@@ -3,6 +3,8 @@
 .pytest_cache/
 __pycache__/
 fixtures/real/
+*.audit.md
+*.audit.json
 dist/
 build/
 *.egg-info/
