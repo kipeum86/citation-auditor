@@ -12,17 +12,19 @@ All notable changes to citation-auditor are documented here. This project follow
 - **Source map schemas** (`SourceBlock`, `SourceMap`) for mapping aggregated claim offsets back to extracted DOCX source blocks.
 - **Scope Notice** in DOCX sidecar reports, including extraction omissions such as footnotes, endnotes, comments, deleted tracked changes, images/OCR-only text, and unreconstructed Word numbering.
 - **Optional `audit_reason` on claims** (`factual`, `citation`, `quantitative`, `temporal`) so the extractor can mark why uncited factual assertions entered the audit surface.
+- **`fixtures/v1.4-docx-legal.docx`** and **`fixtures/v1.4-docx-legal.expected.md`** for a real Claude Code slash-command DOCX E2E run. The fixture covers Korean statutes, table-cell claims, EU law, a quantitative hallucination, and a forecast sentence that should be skipped.
 
 ### Changed
 - Primary `citation-auditor` skill now accepts `.md`, `.markdown`, and `.docx`. Markdown mode preserves the existing annotated-markdown output path; DOCX mode writes a sidecar `.audit.md` report and returns only the report path plus a concise summary.
 - Claim extraction guidance now covers verifiable factual claims even when no citation is attached, including dates, numeric claims, named legal authority or institutional action, and existence/non-existence claims.
 - `/citation-auditor:audit` slash command description and argument hint now mention DOCX.
-- README and Korean README updated for DOCX usage, v1.4.0 version badge, 43-test count, and new CLI commands.
+- README and Korean README updated for DOCX usage, v1.4.0 version badge, 44-test count, and new CLI commands.
 - Package/plugin versions bumped to `1.4.0` to avoid Claude Code plugin cache drift.
 
 ### Validation
-- Python utility suite expanded from 29 to **43 tests** covering DOCX extraction, table/paragraph source maps, extraction omission notices, deleted-text handling, source-map/chunk offset alignment, sidecar report rendering, report JSON payloads, new CLI commands, and all prior chunking/rendering/aggregation/Korean-law behavior.
-- `uv run pytest` passes: **43 passed**.
+- Component validation: Python utility suite expanded from 29 to **44 tests** covering DOCX extraction, DOCX fixture extraction, table/paragraph source maps, extraction omission notices, deleted-text handling, source-map/chunk offset alignment, sidecar report rendering, report JSON payloads, new CLI commands, and all prior chunking/rendering/aggregation/Korean-law behavior.
+- Component validation command: `uv run pytest` passes: **44 passed**.
+- Real slash-command E2E: fixture and expected outcomes are prepared, but the live Claude Code `/citation-auditor:audit fixtures/v1.4-docx-legal.docx` run is tracked separately and should not be counted as passed until executed in a real CC session.
 
 ### Notes
 - DOCX appendix export, Word comments, full footnote/endnote extraction, and tracked-change reconstruction remain future work. v1.4.0 intentionally ships the safer sidecar-report path first.

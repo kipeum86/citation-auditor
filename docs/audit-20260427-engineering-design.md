@@ -229,7 +229,9 @@
 
 ### 4.4 실제 slash-command E2E fixture가 아직 없다
 
-문제: Python 테스트는 43개로 늘었지만, v1.4.0 DOCX 경로는 실제 Claude Code slash command에서 아직 검증되지 않았다.
+상태: 부분 처리됨. `fixtures/v1.4-docx-legal.docx`와 `fixtures/v1.4-docx-legal.expected.md`를 추가했고, Python component suite에서 DOCX fixture 추출 순서를 검증한다. 실제 Claude Code slash-command 실행 결과는 아직 별도 확인이 필요하다.
+
+문제: Python 테스트는 44개로 늘었지만, v1.4.0 DOCX 경로는 실제 Claude Code slash command에서 아직 검증되지 않았다.
 
 왜 중요한가: 이 프로젝트의 위험 지점은 Python 유틸보다 skill orchestration이다. component test가 통과해도 skill이 temp path, aggregate schema, final report 경로를 잘못 처리할 수 있다.
 

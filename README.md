@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/license-Apache_2.0-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange.svg)](https://docs.anthropic.com/en/docs/claude-code)
-[![Tests](https://img.shields.io/badge/tests-43%2F43_passing-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-44%2F44_passing-brightgreen.svg)](tests/)
 
 > **⚠️ AI-generated audits only. Always have outputs reviewed by a qualified professional.** This plugin flags suspicious citations and factual claims but does not replace human legal or domain expertise. A `✅` badge means *"no contradiction found"* — not *"confirmed correct beyond doubt."* Treat `⚠️` and `❓` as mandatory manual-review triggers.
 
@@ -303,6 +303,8 @@ v1.0 was validated against a **10-claim legal memo** (mixed real and fabricated 
 
 v1.2 added the three new bundled legal verifiers (`us-law`, `uk-law`, `eu-law`) and was validated against a **6-claim global-legal briefing** (`fixtures/v1.2-global-legal.md`) mixing US, UK, and EU jurisdictions with three real and three fabricated citations: **6/6 correctly classified**. The validation surfaced four real-world environment behaviors that the v1.2 WebSearch fallback handles correctly — Cornell LII WebFetch denial, BAILII Anubis anti-bot interstitial, EUR-Lex JS-rendered shell with empty body, and structurally impossible neutral citations (`[2024] UKSC 9876`, `CELEX 39999L8888`). Reproducible by dropping the fixture into `/citation-auditor:audit` with the three new verifiers loaded.
 
+v1.4 DOCX mode has a dedicated slash-command fixture at `fixtures/v1.4-docx-legal.docx`, with expected outcomes in `fixtures/v1.4-docx-legal.expected.md`. The fixture mixes Korean statutes, table-cell claims, EU law, a quantitative factual hallucination, and one forecast sentence that should be skipped.
+
 ---
 
 ## Verification Boundary
@@ -382,7 +384,7 @@ uv sync --group dev
 uv run pytest
 ```
 
-43 tests cover the Python utility layer (DOCX extraction, sidecar reports, machine-readable report JSON, chunking, rendering, aggregation, Korean legal citation parsing). Skills are tested end-to-end inside a real Claude Code session since they involve LLM orchestration and tool dispatch.
+44 tests cover the Python utility layer (DOCX extraction, DOCX fixture extraction, sidecar reports, machine-readable report JSON, chunking, rendering, aggregation, Korean legal citation parsing). Skills are tested end-to-end inside a real Claude Code session since they involve LLM orchestration and tool dispatch.
 
 Smoke test the CLI utilities directly:
 
@@ -429,7 +431,7 @@ citation-auditor/
 │   ├── day1-mcp-resolution.md    # Korean-law MCP capability spike notes
 │   └── ko/
 │       └── README.md             # Korean mirror of this document
-├── tests/                         # 43 pytest cases
+├── tests/                         # 44 pytest cases
 ├── fixtures/                      # Synthetic test opinions
 ├── CHANGELOG.md
 ├── LICENSE                        # Apache License 2.0
@@ -486,7 +488,7 @@ Runtime Python dependencies are intentionally minimal: `pydantic` and `marko`. N
 - Scope Notice in DOCX reports for unsupported or partially represented areas such as footnotes, comments, images/OCR-only text, and unreconstructed Word numbering
 - Report locations resolve claim offsets back to source blocks such as paragraphs and table cells
 - Existing markdown-in / annotated-markdown-out flow unchanged
-- 43-test Python utility suite covering DOCX extraction, source-map alignment, sidecar reports, report JSON, CLI, rendering, aggregation, and Korean legal helpers
+- 44-test Python utility suite covering DOCX extraction, source-map alignment, DOCX fixture extraction, sidecar reports, report JSON, CLI, rendering, aggregation, and Korean legal helpers
 
 **v1.x (planned)**
 - `SubagentStop` hook for automatic post-generation audit

@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/license-Apache_2.0-green.svg)](../../LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange.svg)](https://docs.anthropic.com/en/docs/claude-code)
-[![Tests](https://img.shields.io/badge/tests-43%2F43_passing-brightgreen.svg)](../../tests/)
+[![Tests](https://img.shields.io/badge/tests-44%2F44_passing-brightgreen.svg)](../../tests/)
 
 > **⚠️ 결과물은 AI가 생성한 감사 기록입니다. 반드시 자격 있는 전문가의 검토를 거친 뒤 사용하세요.** 이 플러그인은 의심스러운 인용과 사실 주장을 표시해 줄 뿐, 법률 전문가나 도메인 전문가의 판단을 대체하지 않습니다. `✅` 배지는 *"반박 증거를 찾지 못함"*을 의미하지 *"완전히 맞다는 확정"*이 아닙니다. `⚠️`와 `❓`는 **반드시 사람이 확인**해야 하는 표식입니다.
 
@@ -296,6 +296,8 @@ git pull
 
 v1.2에서는 새 번들 verifier 3종(`us-law`, `uk-law`, `eu-law`)을 추가하고 미국·영국·EU 법역 혼합 6 claim 영문 브리핑(`fixtures/v1.2-global-legal.md`)으로 재검증 — **6/6 정확 분류**. 검증 과정에서 v1.2 WebSearch fallback 설계가 처리한 실환경 4개 시나리오 확인: Cornell LII WebFetch 거부, BAILII Anubis anti-bot 차단, EUR-Lex JS 렌더 셸 빈 응답, 구조적으로 불가능한 가공 인용(`[2024] UKSC 9876`, `CELEX 39999L8888`). fixture를 `/citation-auditor:audit`에 넣고 3개 새 verifier를 로드하면 재현 가능합니다.
 
+v1.4 DOCX 모드는 `fixtures/v1.4-docx-legal.docx` 전용 slash-command fixture와 `fixtures/v1.4-docx-legal.expected.md` 기대값 문서를 갖습니다. 이 fixture는 한국 법령, 표 셀 안의 claim, EU 법령, 정량 사실 환각, 감사 대상에서 제외되어야 하는 전망 문장을 함께 포함합니다.
+
 ---
 
 ## 감사 대상 범위
@@ -373,7 +375,7 @@ uv sync --group dev
 uv run pytest
 ```
 
-43개 테스트가 Python 유틸 레이어(DOCX 추출, 별도 보고서, 기계 판독 report JSON, 청킹, 렌더, 집계, 한국 법률 인용 파싱)를 커버합니다. Skill은 LLM 오케스트레이션과 tool dispatch가 얽혀 있어 **실제 Claude Code 세션에서 E2E로 검증**합니다.
+44개 테스트가 Python 유틸 레이어(DOCX 추출, DOCX fixture 추출, 별도 보고서, 기계 판독 report JSON, 청킹, 렌더, 집계, 한국 법률 인용 파싱)를 커버합니다. Skill은 LLM 오케스트레이션과 tool dispatch가 얽혀 있어 **실제 Claude Code 세션에서 E2E로 검증**합니다.
 
 CLI 유틸 직접 스모크 테스트:
 
@@ -420,7 +422,7 @@ citation-auditor/
 │   ├── day1-mcp-resolution.md    # Korean-law MCP 해상도 스파이크 노트
 │   └── ko/
 │       └── README.md             # 이 문서 (한국어 미러)
-├── tests/                         # 43개 pytest 케이스
+├── tests/                         # 44개 pytest 케이스
 ├── fixtures/                      # 합성 테스트 의견서
 ├── CHANGELOG.md
 ├── LICENSE                        # Apache License 2.0
@@ -477,7 +479,7 @@ citation-auditor/
 - 각주, comments, 이미지/OCR 전용 텍스트, 재구성하지 않은 Word numbering 등 미지원 또는 부분 반영 영역을 DOCX 보고서 Scope Notice에 표시
 - claim offset을 문단·표 셀 같은 source block 위치로 되돌려 보고서에 표시
 - 기존 markdown-in / annotated-markdown-out 흐름은 변경 없음
-- DOCX 추출, source map 정합, 별도 보고서, report JSON, CLI, 렌더, 집계, 한국 법률 helper를 커버하는 43개 Python 테스트
+- DOCX 추출, source map 정합, DOCX fixture 추출, 별도 보고서, report JSON, CLI, 렌더, 집계, 한국 법률 helper를 커버하는 44개 Python 테스트
 
 **v1.x (계획)**
 - 생성 직후 자동 감사를 위한 `SubagentStop` hook
