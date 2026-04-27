@@ -306,7 +306,8 @@ Confirm $0 exists and has extension .md, .markdown, or .docx.
 `local_only` 전파 정책:
 
 - DOCX 분기에서도 verifier subagent에 전달되는 입력 JSON은 markdown 분기와 동일한 규약을 따른다.
-- 사용자가 local/private 모드를 지정한 경우, `local_only` 값은 audit-source markdown에서 추출된 claim에도 그대로 전파한다.
+- `--local-only`, `--no-web`, `--offline` 중 하나가 명시된 경우에만 `local_only` 값은 audit-source markdown에서 추출된 claim에도 그대로 전파한다.
+- 민감/비밀/특권 문서라는 자연어 표현만 있고 명시 flag가 없으면, skill은 감사를 시작하기 전에 외부 조회 차단 여부를 확인한다.
 - DOCX 추출 자체는 로컬 deterministic 처리이므로 외부 네트워크를 사용하지 않는다.
 
 ## 8. Slash Command 변경안
@@ -324,7 +325,7 @@ argument-hint: "<file.md>"
 
 ```text
 Audit a markdown or DOCX file
-argument-hint: "<file.md|file.docx>"
+argument-hint: "[--local-only|--no-web|--offline] <file.md|file.docx>"
 ```
 
 본문도 함께 수정한다.

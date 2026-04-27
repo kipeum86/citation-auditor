@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/license-Apache_2.0-green.svg)](../../LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange.svg)](https://docs.anthropic.com/en/docs/claude-code)
-[![Tests](https://img.shields.io/badge/tests-48%2F48_passing-brightgreen.svg)](../../tests/)
+[![Tests](https://img.shields.io/badge/tests-49%2F49_passing-brightgreen.svg)](../../tests/)
 
 > **⚠️ 결과물은 AI가 생성한 감사 기록입니다. 반드시 자격 있는 전문가의 검토를 거친 뒤 사용하세요.** 이 플러그인은 의심스러운 인용과 사실 주장을 표시해 줄 뿐, 법률 전문가나 도메인 전문가의 판단을 대체하지 않습니다. `✅` 배지는 *"반박 증거를 찾지 못함"*을 의미하지 *"완전히 맞다는 확정"*이 아닙니다. `⚠️`와 `❓`는 **반드시 사람이 확인**해야 하는 표식입니다.
 
@@ -187,6 +187,14 @@ scope 선택 프롬프트가 뜨면 **User scope** 선택. User scope는 `~/.cla
 
 DOCX 입력은 원본 Word 문서를 수정하지 않고 `path/to/opinion.audit.md` 별도 보고서를 생성합니다. 보고서에는 Scope Notice, 요약 카운트, `문단 3` 또는 `표 1 / 행 2 / 열 1` 같은 위치, rationale, evidence가 포함됩니다. 내부 `report` CLI는 자동화용 `path/to/opinion.audit.json`도 생성할 수 있으며, 안정적인 `summary`, `scope`, `findings` 필드를 제공합니다.
 
+로컬 전용 검토가 필요하면 경로 앞에 명시 플래그를 붙입니다:
+
+```text
+/citation-auditor:audit --local-only path/to/opinion.docx
+```
+
+`--no-web`, `--offline`도 같은 의미입니다. 이 플래그가 없으면 citation-auditor는 기존 verifier 동작을 유지합니다.
+
 ### 업데이트
 
 ```
@@ -328,7 +336,7 @@ citation-auditor는 **검증 가능한 사실 주장과 인용**만 감사합니
 - **텔레메트리 없음.** 사용 데이터 수집이나 외부 보고 기능이 없습니다.
 - **웹 조회는 번들 verifier 경로로만.** `general-web` verifier가 Claude Code 세션의 WebSearch와 WebFetch를 사용합니다. 세션에서 해당 도구가 제한·차단되면 verifier는 `❓`를 반환할 뿐 다른 경로로 본문을 유출하지 않습니다.
 - **한국 법률 조회**는 세션에 구성된 Korean-law MCP 서버로 전달됩니다. 쿼리 내용의 처리 방식은 해당 MCP 구현에 따릅니다.
-- **`local_only` 모드.** 두 번들 verifier 모두 `local_only` 플래그를 지원합니다 — 설정 시 모든 외부 호출을 건너뛰고 `❓ "로컬 전용 모드"`로 반환합니다.
+- **`local_only` 모드.** `/citation-auditor:audit --local-only <file>`, `/citation-auditor:audit --no-web <file>`, `/citation-auditor:audit --offline <file>` 중 하나를 쓰면 모든 verifier에 `local_only: true`가 전달됩니다. 이 모드는 외부 WebFetch/WebSearch/MCP 조회를 건너뛰고, 외부 원문이 필요한 claim은 `❓ "로컬 전용 모드"`로 반환합니다. 자연어로 “민감한 문서”라고 말하는 것만으로는 local-only가 켜지지 않습니다. 그런 표현이 있는데 플래그가 없으면 skill은 진행 전에 확인해야 합니다.
 
 민감 문서(비밀·특권 정보, PHI, PII)를 처리할 때는 감사 실행 **전에** Claude Code 세션의 data retention과 base URL 설정을 조직 정책에 맞게 구성해야 합니다. 플러그인은 그 설정을 덮어쓰거나 우회하지 않습니다.
 
@@ -379,7 +387,7 @@ uv sync --group dev
 uv run pytest
 ```
 
-48개 테스트가 Python 유틸 레이어(DOCX 추출, DOCX fixture 추출, 별도 보고서, 기계 판독 report JSON, verifier metadata 스키마, vendor 보호장치, 청킹, 렌더, 집계, 한국 법률 인용 파싱)를 커버합니다. Skill은 LLM 오케스트레이션과 tool dispatch가 얽혀 있어 **실제 Claude Code 세션에서 E2E로 검증**합니다.
+49개 테스트가 Python 유틸 레이어(DOCX 추출, DOCX fixture 추출, 별도 보고서, 기계 판독 report JSON, verifier metadata 스키마, local-only command 계약, vendor 보호장치, 청킹, 렌더, 집계, 한국 법률 인용 파싱)를 커버합니다. Skill은 LLM 오케스트레이션과 tool dispatch가 얽혀 있어 **실제 Claude Code 세션에서 E2E로 검증**합니다.
 
 CLI 유틸 직접 스모크 테스트:
 
@@ -426,7 +434,7 @@ citation-auditor/
 │   ├── day1-mcp-resolution.md    # Korean-law MCP 해상도 스파이크 노트
 │   └── ko/
 │       └── README.md             # 이 문서 (한국어 미러)
-├── tests/                         # 48개 pytest 케이스
+├── tests/                         # 49개 pytest 케이스
 ├── fixtures/                      # 합성 테스트 의견서
 ├── CHANGELOG.md
 ├── LICENSE                        # Apache License 2.0
@@ -483,7 +491,7 @@ citation-auditor/
 - 각주, comments, 이미지/OCR 전용 텍스트, 재구성하지 않은 Word numbering 등 미지원 또는 부분 반영 영역을 DOCX 보고서 Scope Notice에 표시
 - claim offset을 문단·표 셀 같은 source block 위치로 되돌려 보고서에 표시
 - 기존 markdown-in / annotated-markdown-out 흐름은 변경 없음
-- DOCX 추출, source map 정합, DOCX fixture 추출, 별도 보고서, report JSON, verifier metadata 스키마, vendor 보호장치, CLI, 렌더, 집계, 한국 법률 helper를 커버하는 48개 Python 테스트
+- DOCX 추출, source map 정합, DOCX fixture 추출, 별도 보고서, report JSON, verifier metadata 스키마, local-only command 계약, vendor 보호장치, CLI, 렌더, 집계, 한국 법률 helper를 커버하는 49개 Python 테스트
 
 **v1.x (계획)**
 - 생성 직후 자동 감사를 위한 `SubagentStop` hook

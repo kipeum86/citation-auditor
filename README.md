@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/license-Apache_2.0-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange.svg)](https://docs.anthropic.com/en/docs/claude-code)
-[![Tests](https://img.shields.io/badge/tests-48%2F48_passing-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-49%2F49_passing-brightgreen.svg)](tests/)
 
 > **⚠️ AI-generated audits only. Always have outputs reviewed by a qualified professional.** This plugin flags suspicious citations and factual claims but does not replace human legal or domain expertise. A `✅` badge means *"no contradiction found"* — not *"confirmed correct beyond doubt."* Treat `⚠️` and `❓` as mandatory manual-review triggers.
 
@@ -187,6 +187,14 @@ Output is the same file with `**[✅ verifier-name]**` / `**[⚠️ verifier-nam
 
 DOCX inputs leave the original Word document untouched and create `path/to/opinion.audit.md`, a sidecar report with a Scope Notice, summary counts, locations such as `문단 3` or `표 1 / 행 2 / 열 1`, rationales, and evidence. The underlying `report` CLI can also write `path/to/opinion.audit.json` for automation with stable `summary`, `scope`, and `findings` fields.
 
+For local-only review, pass one explicit flag before the path:
+
+```
+/citation-auditor:audit --local-only path/to/opinion.docx
+```
+
+`--no-web` and `--offline` are equivalent aliases. Without one of these flags, citation-auditor keeps the normal verifier behavior.
+
 ### Update
 
 ```
@@ -337,7 +345,7 @@ Unaudited sentences carry no badge; they are the reviewer's responsibility.
 - **No telemetry.** The plugin does not collect usage data or phone home.
 - **Web queries only via bundled verifiers.** The `general-web` verifier uses WebSearch and WebFetch (provided by your Claude Code session). If your session restricts or blocks those, the verifier returns `❓` and does not exfiltrate content elsewhere.
 - **Korean legal queries** go to the Korean-law MCP server configured in your Claude Code session. Per-query content depends on that MCP's implementation.
-- **`local_only` mode.** Both bundled verifiers support an opt-in `local_only` flag that skips all outbound network calls and returns `❓ "local-only mode"` for any claim that would otherwise require web or MCP lookup.
+- **`local_only` mode.** Use `/citation-auditor:audit --local-only <file>`, `/citation-auditor:audit --no-web <file>`, or `/citation-auditor:audit --offline <file>` to pass `local_only: true` to every verifier. This skips outbound WebFetch/WebSearch/MCP lookups and returns `❓ "local-only mode"` for claims that require external sources. Natural-language sensitivity phrases alone do not enable local-only mode; the skill should ask before proceeding if you mention a sensitive/private document without one of these flags.
 
 When processing sensitive documents (privileged legal matters, PHI, PII), configure your Claude Code session's data-retention and base-URL settings according to your organization's policy *before* running the audit. The plugin does not add or override those settings.
 
@@ -388,7 +396,7 @@ uv sync --group dev
 uv run pytest
 ```
 
-48 tests cover the Python utility layer (DOCX extraction, DOCX fixture extraction, sidecar reports, machine-readable report JSON, verifier metadata schema, vendoring guards, chunking, rendering, aggregation, Korean legal citation parsing). Skills are tested end-to-end inside a real Claude Code session since they involve LLM orchestration and tool dispatch.
+49 tests cover the Python utility layer (DOCX extraction, DOCX fixture extraction, sidecar reports, machine-readable report JSON, verifier metadata schema, local-only command contract, vendoring guards, chunking, rendering, aggregation, Korean legal citation parsing). Skills are tested end-to-end inside a real Claude Code session since they involve LLM orchestration and tool dispatch.
 
 Smoke test the CLI utilities directly:
 
@@ -435,7 +443,7 @@ citation-auditor/
 │   ├── day1-mcp-resolution.md    # Korean-law MCP capability spike notes
 │   └── ko/
 │       └── README.md             # Korean mirror of this document
-├── tests/                         # 48 pytest cases
+├── tests/                         # 49 pytest cases
 ├── fixtures/                      # Synthetic test opinions
 ├── CHANGELOG.md
 ├── LICENSE                        # Apache License 2.0
@@ -492,7 +500,7 @@ Runtime Python dependencies are intentionally minimal: `pydantic` and `marko`. N
 - Scope Notice in DOCX reports for unsupported or partially represented areas such as footnotes, comments, images/OCR-only text, and unreconstructed Word numbering
 - Report locations resolve claim offsets back to source blocks such as paragraphs and table cells
 - Existing markdown-in / annotated-markdown-out flow unchanged
-- 48-test Python utility suite covering DOCX extraction, source-map alignment, DOCX fixture extraction, sidecar reports, report JSON, verifier metadata schema, vendor guards, CLI, rendering, aggregation, and Korean legal helpers
+- 49-test Python utility suite covering DOCX extraction, source-map alignment, DOCX fixture extraction, sidecar reports, report JSON, verifier metadata schema, local-only command contract, vendor guards, CLI, rendering, aggregation, and Korean legal helpers
 
 **v1.x (planned)**
 - `SubagentStop` hook for automatic post-generation audit

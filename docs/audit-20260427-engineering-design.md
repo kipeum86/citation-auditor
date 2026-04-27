@@ -203,6 +203,8 @@
 
 ### 4.2 `local_only` 사용법이 사용자 인터페이스에 노출되어 있지 않다
 
+상태: 처리됨. slash command와 primary skill argument hint에 `--local-only`, `--no-web`, `--offline`을 추가했고, skill 1단계에서 `$ARGUMENTS`를 flags와 path로 분리하도록 명시했다.
+
 문제: verifier 계약은 `local_only`를 지원하지만 slash command나 README에는 사용자가 어떤 문구/옵션으로 local-only 모드를 요청해야 하는지 정의되어 있지 않다.
 
 왜 중요한가: 민감한 법률 문서를 다루는 사용자는 외부 fetch 차단을 명시적으로 원할 수 있다. UI가 없으면 skill이 “사용자가 명시적으로 요청한 경우”를 일관되게 판단하기 어렵다.
@@ -231,7 +233,7 @@
 
 상태: 부분 처리됨. `fixtures/v1.4-docx-legal.docx`와 `fixtures/v1.4-docx-legal.expected.md`를 추가했고, Python component suite에서 DOCX fixture 추출 순서를 검증한다. 실제 Claude Code slash-command 실행 결과는 아직 별도 확인이 필요하다.
 
-문제: Python 테스트는 48개로 늘었지만, v1.4.0 DOCX 경로는 실제 Claude Code slash command에서 아직 검증되지 않았다.
+문제: Python 테스트는 49개로 늘었지만, v1.4.0 DOCX 경로는 실제 Claude Code slash command에서 아직 검증되지 않았다.
 
 왜 중요한가: 이 프로젝트의 위험 지점은 Python 유틸보다 skill orchestration이다. component test가 통과해도 skill이 temp path, aggregate schema, final report 경로를 잘못 처리할 수 있다.
 
@@ -296,6 +298,8 @@
 - `aggregate` 입력 생성 전 dropped candidates count를 Summary에 포함한다.
 
 ### 5.4 `local_only` 판단 기준이 자연어에 의존한다
+
+상태: 처리됨. 명시 플래그(`--local-only`, `--no-web`, `--offline`)만 `local_only: true`로 인정하도록 primary skill을 갱신했다. 민감성 표현만 있고 플래그가 없으면 감사 시작 전에 확인하도록 했다.
 
 문제: skill은 “unless the user explicitly requested local-only/private verification”이라고만 한다. 어떤 표현이 explicit request인지 명확하지 않다.
 
