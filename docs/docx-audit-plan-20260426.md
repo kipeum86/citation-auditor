@@ -104,6 +104,7 @@ DOCX 지원 후 구조:
 
 ```text
 input file
+-> prepare deterministic audit paths
 -> if .docx: extract-docx
 -> audit-source markdown text
 -> chunk
@@ -244,12 +245,17 @@ python -m citation_auditor korean_law lookup-law "민법"
 추가할 CLI 시그니처는 다음으로 고정한다.
 
 ```bash
-python -m citation_auditor extract-docx input.docx --out-md /tmp/input.audit-source.md --out-map /tmp/input.map.json
-python -m citation_auditor report /tmp/input.map.json /tmp/input.aggregated.json --out input.audit.md
+python -m citation_auditor prepare input.docx
+python -m citation_auditor prepare input.docx --overwrite
+python -m citation_auditor extract-docx input.docx --out-md <paths.audit_source_md> --out-map <paths.source_map_json>
+python -m citation_auditor report <paths.source_map_json> <paths.aggregate_output_json> --out <paths.report_md> --out-json <paths.report_json>
 ```
 
 규약:
 
+- `prepare`는 원본 path를 받아 mode, audit input path, work dir, aggregate 입출력 path, DOCX sidecar output path를 짧은 JSON으로 출력한다.
+- `.docx` 입력에서 기존 `.audit.md` 또는 `.audit.json`이 있으면 기본은 non-zero exit이고, 사용자가 `--overwrite`를 명시한 경우에만 진행한다.
+- skill은 temp path나 sidecar output path를 직접 만들지 않고 항상 `prepare` JSON의 `paths` 값을 사용한다.
 - `extract-docx`는 audit-source markdown과 source map JSON을 명시 경로에 쓴다.
 - `extract-docx`의 stdout은 사람이 읽는 로그가 아니라 다음 형태의 짧은 JSON만 출력한다.
 
@@ -264,11 +270,12 @@ python -m citation_auditor report /tmp/input.map.json /tmp/input.aggregated.json
 MVP에서 skill이 수행할 전체 DOCX 흐름:
 
 ```bash
-python -m citation_auditor extract-docx input.docx --out-md /tmp/input.audit-source.md --out-map /tmp/input.map.json
-python -m citation_auditor chunk /tmp/input.audit-source.md --max-tokens 3000
+python -m citation_auditor prepare input.docx
+python -m citation_auditor extract-docx input.docx --out-md <paths.audit_source_md> --out-map <paths.source_map_json>
+python -m citation_auditor chunk <audit_input> --max-tokens 3000
 # claim extraction -> verifier dispatch는 skill이 수행
-python -m citation_auditor aggregate /tmp/input.aggregate-input.json > /tmp/input.aggregated.json
-python -m citation_auditor report /tmp/input.map.json /tmp/input.aggregated.json --out input.audit.md
+python -m citation_auditor aggregate <paths.aggregate_input_json> > <paths.aggregate_output_json>
+python -m citation_auditor report <paths.source_map_json> <paths.aggregate_output_json> --out <paths.report_md> --out-json <paths.report_json>
 ```
 
 ## 7. Skill 변경안
@@ -287,12 +294,13 @@ Confirm $0 exists and is a markdown file.
 Confirm $0 exists and has extension .md, .markdown, or .docx.
 
 1. Determine the input extension.
-2. If the input is .md or .markdown, run the existing markdown pipeline unchanged.
-3. If the input is .docx:
-   - Run extract-docx to create a temporary audit-source markdown file and source map JSON.
+2. Run prepare to obtain deterministic paths. Pass --overwrite only when the user explicitly supplied it.
+3. If the input is .md or .markdown, run the existing markdown pipeline with the prepare-provided audit_input.
+4. If the input is .docx:
+   - Run extract-docx with the prepare-provided audit_source_md and source_map_json paths.
    - Treat the temporary audit-source markdown as the document input for all existing claim extraction, verifier routing, Task dispatch, invalid JSON handling, skipped forecast handling, and aggregate schema rules.
    - Preserve the existing aggregate input schema exactly.
-   - Replace the final render "$0" <aggfile> step with report <mapfile> <aggfile> --out ${INPUT%.docx}.audit.md.
+   - Replace the final render "$0" <aggfile> step with report <mapfile> <aggfile> --out <paths.report_md> --out-json <paths.report_json>.
    - Return only the generated report path plus a concise Summary table. Do not paste the full report into chat.
 ```
 
@@ -325,13 +333,14 @@ argument-hint: "<file.md>"
 
 ```text
 Audit a markdown or DOCX file
-argument-hint: "[--local-only|--no-web|--offline] <file.md|file.docx>"
+argument-hint: "[--local-only|--no-web|--offline] [--overwrite] <file.md|file.docx>"
 ```
 
 본문도 함께 수정한다.
 
 - 무인자일 때 질문: “markdown or DOCX file path” 요청
 - path 전달 문구: “markdown file path”가 아니라 “file path” 또는 “markdown/DOCX file path”로 수정
+- `--overwrite`는 기존 DOCX sidecar report를 의도적으로 교체할 때만 전달한다고 명시
 - `.docx` 입력은 최종 annotated markdown 전문을 반환하지 않고 `.audit.md` 파일 경로를 반환한다고 명시
 
 ## 9. 테스트 계획
@@ -345,9 +354,13 @@ argument-hint: "[--local-only|--no-web|--offline] <file.md|file.docx>"
 - `test_report_includes_location_from_source_map`: 문단/표 위치가 finding에 표시되는지 확인
 - `test_chunk_offsets_align_with_docx_blocks`: `extract-docx` -> `chunk` 후 chunk segment의 `document_start/end`가 source map block offset과 정합되는지 확인
 - `test_report_location_is_block_label`: aggregate 결과를 report에 넣었을 때 `Location`이 source map의 `block.label`과 일치하는지 확인
+- `test_prepare_subcommand_returns_markdown_paths`: markdown 입력에서 prepare가 원문을 audit_input으로 유지하는지 확인
+- `test_prepare_subcommand_returns_docx_paths_for_spaced_unicode_input`: 공백/한글이 있는 DOCX 경로에서 prepare가 안전한 temp path와 sidecar path를 반환하는지 확인
+- `test_prepare_subcommand_blocks_existing_docx_outputs_without_overwrite`: 기존 sidecar가 있을 때 기본 차단, `--overwrite` 허용을 확인
 
 ### CLI 테스트
 
+- `prepare`가 지원 확장자만 허용하고 mode별 path manifest를 JSON으로 출력하는지 확인
 - `extract-docx`가 markdown과 map JSON을 생성하는지 확인
 - `report`가 `.audit.md`를 생성하는지 확인
 - 잘못된 확장자 또는 깨진 docx에서 non-zero exit
@@ -544,13 +557,14 @@ docs/audit-20260426-engineering-design.md
 1. `docx.py`로 DOCX -> audit-source markdown 추출
 2. `report.py`로 external audit report 생성
 3. CLI에 `extract-docx`, `report` 추가
-4. skill에서 `.docx` 분기 추가
-5. slash command 문구 수정
-6. README/KO README에 DOCX 사용법 추가
-7. 테스트 추가
-8. changelog/version bump
-9. 실제 CC 세션에서 DOCX E2E 검증
-10. 필요할 경우 canary legal agent 1개만 vendor 업데이트
-11. 별도 엔지니어링/설계 감사 문서 작성
+4. CLI에 `prepare` 추가해서 temp path와 sidecar output path를 Python이 결정하게 함
+5. skill에서 `.docx` 분기 추가
+6. slash command 문구 수정
+7. README/KO README에 DOCX 사용법 추가
+8. 테스트 추가
+9. changelog/version bump
+10. 실제 CC 세션에서 DOCX E2E 검증
+11. 필요할 경우 canary legal agent 1개만 vendor 업데이트
+12. 별도 엔지니어링/설계 감사 문서 작성
 
 이 순서가 좋은 이유는, 기존 markdown 파이프라인을 먼저 건드리지 않고 DOCX 변환과 보고서 생성을 옆에 붙일 수 있기 때문이다. 실패해도 기존 `/audit file.md` 동작을 망가뜨릴 가능성이 작다.

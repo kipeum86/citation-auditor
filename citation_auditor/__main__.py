@@ -23,6 +23,7 @@ from citation_auditor.models import (
     SentenceSpan,
     Verdict,
 )
+from citation_auditor.prepare import PrepareError, prepare_audit
 from citation_auditor.render import render_markdown
 from citation_auditor.report import write_audit_report
 from citation_auditor.settings import AuditSettings
@@ -45,6 +46,11 @@ def build_parser() -> argparse.ArgumentParser:
     render_parser.add_argument("input_md", type=Path, help="Source markdown file.")
     render_parser.add_argument("aggregated_json", type=Path, help="Aggregated verdict JSON file.")
     render_parser.set_defaults(func=_run_render)
+
+    prepare_parser = subparsers.add_parser("prepare", help="Prepare deterministic paths for a markdown or DOCX audit run.")
+    prepare_parser.add_argument("input", type=Path, help="Markdown or DOCX file to audit.")
+    prepare_parser.add_argument("--overwrite", action="store_true", help="Allow overwriting existing sidecar audit outputs.")
+    prepare_parser.set_defaults(func=_run_prepare)
 
     extract_docx_parser = subparsers.add_parser("extract-docx", help="Extract DOCX text into audit-source markdown and source map JSON.")
     extract_docx_parser.add_argument("input_docx", type=Path, help="DOCX file to extract.")
@@ -157,6 +163,11 @@ def _run_render(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_prepare(args: argparse.Namespace) -> int:
+    _print_json(prepare_audit(args.input, overwrite=args.overwrite))
+    return 0
+
+
 def _run_extract_docx(args: argparse.Namespace) -> int:
     payload = write_docx_extraction(args.input_docx, args.out_md, args.out_map)
     _print_json(payload)
@@ -250,7 +261,7 @@ def main(argv: list[str] | None = None) -> int:
     except json.JSONDecodeError as exc:
         print(exc, file=sys.stderr)
         return 1
-    except (DocxExtractionError, ParseError, OSError) as exc:
+    except (DocxExtractionError, ParseError, PrepareError, OSError) as exc:
         print(exc, file=sys.stderr)
         return 1
 

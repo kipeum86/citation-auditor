@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/license-Apache_2.0-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange.svg)](https://docs.anthropic.com/en/docs/claude-code)
-[![Tests](https://img.shields.io/badge/tests-49%2F49_passing-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-52%2F52_passing-brightgreen.svg)](tests/)
 
 > **⚠️ AI-generated audits only. Always have outputs reviewed by a qualified professional.** This plugin flags suspicious citations and factual claims but does not replace human legal or domain expertise. A `✅` badge means *"no contradiction found"* — not *"confirmed correct beyond doubt."* Treat `⚠️` and `❓` as mandatory manual-review triggers.
 
@@ -28,7 +28,7 @@ Part of the **AI Trust Infrastructure** series — the post-receive counterpart 
 
 The plugin relies on Claude Code-specific features: the skill format with frontmatter, slash commands, the Task tool for subagent dispatch, the Bash tool for utility invocation, and session-level MCP server integration. None of these are portable to other surfaces.
 
-The Python utility layer (`python -m citation_auditor extract-docx|chunk|aggregate|render|report|korean_law …`) can be invoked as a CLI in any environment, but without the Claude Code-side orchestration the end-to-end verification flow does not run.
+The Python utility layer (`python -m citation_auditor prepare|extract-docx|chunk|aggregate|render|report|korean_law …`) can be invoked as a CLI in any environment, but without the Claude Code-side orchestration the end-to-end verification flow does not run.
 
 ---
 
@@ -103,9 +103,9 @@ Today a careful reviewer spends 10–30 minutes per document spot-checking each 
 ┌───────────────────────┐              ┌──────────────────────────┐
 │  Skills   (primary)   │              │  Python  (deterministic) │
 │                       │  bash call   │                          │
-│  citation-auditor ────┼─────────────►│  extract-docx / chunk /  │
-│  verifiers/*          │   stdout     │  aggregate / render /    │
-│                       │              │  report / korean_law     │
+│  citation-auditor ────┼─────────────►│  prepare / extract-docx  │
+│  verifiers/*          │   stdout     │  chunk / aggregate /     │
+│                       │              │  render / report / law   │
 └───────────────────────┘              └──────────────────────────┘
         │
         │ Task tool dispatch
@@ -186,6 +186,8 @@ Output is the same file with `**[✅ verifier-name]**` / `**[⚠️ verifier-nam
 ```
 
 DOCX inputs leave the original Word document untouched and create `path/to/opinion.audit.md`, a sidecar report with a Scope Notice, summary counts, locations such as `문단 3` or `표 1 / 행 2 / 열 1`, rationales, and evidence. The underlying `report` CLI can also write `path/to/opinion.audit.json` for automation with stable `summary`, `scope`, and `findings` fields.
+
+Existing sidecar reports are not overwritten by default. Pass `--overwrite` only when you intentionally want to replace `path/to/opinion.audit.md` and `path/to/opinion.audit.json`.
 
 For local-only review, pass one explicit flag before the path:
 
@@ -396,12 +398,13 @@ uv sync --group dev
 uv run pytest
 ```
 
-49 tests cover the Python utility layer (DOCX extraction, DOCX fixture extraction, sidecar reports, machine-readable report JSON, verifier metadata schema, local-only command contract, vendoring guards, chunking, rendering, aggregation, Korean legal citation parsing). Skills are tested end-to-end inside a real Claude Code session since they involve LLM orchestration and tool dispatch.
+52 tests cover the Python utility layer (audit preparation paths, DOCX extraction, DOCX fixture extraction, sidecar reports, machine-readable report JSON, verifier metadata schema, local-only command contract, vendoring guards, chunking, rendering, aggregation, Korean legal citation parsing). Skills are tested end-to-end inside a real Claude Code session since they involve LLM orchestration and tool dispatch.
 
 Smoke test the CLI utilities directly:
 
 ```bash
 echo -e "Alpha.\n\n민법 제103조에 따른 법률행위는 무효이다." > /tmp/test.md
+uv run python -m citation_auditor prepare /tmp/test.md
 uv run python -m citation_auditor chunk /tmp/test.md --max-tokens 3000
 uv run python -m citation_auditor korean_law parse "민법 제103조"
 ```
@@ -430,7 +433,8 @@ citation-auditor/
 │       ├── scholarly/SKILL.md    # CrossRef + arXiv + PubMed citation verifier
 │       └── wikipedia/SKILL.md    # Wikipedia REST API verifier (EN + KO)
 ├── citation_auditor/             # Python utility package (deterministic only)
-│   ├── __main__.py               # CLI entry: extract-docx|chunk|aggregate|render|report|korean_law
+│   ├── __main__.py               # CLI entry: prepare|extract-docx|chunk|aggregate|render|report|korean_law
+│   ├── prepare.py                # Deterministic audit run path planning + overwrite guard
 │   ├── docx.py                   # DOCX → audit-source markdown + source map extraction
 │   ├── report.py                 # Sidecar markdown/JSON audit report renderer for DOCX inputs
 │   ├── chunking.py               # Markdown AST chunking with paragraph overlap
@@ -443,7 +447,7 @@ citation-auditor/
 │   ├── day1-mcp-resolution.md    # Korean-law MCP capability spike notes
 │   └── ko/
 │       └── README.md             # Korean mirror of this document
-├── tests/                         # 49 pytest cases
+├── tests/                         # 52 pytest cases
 ├── fixtures/                      # Synthetic test opinions
 ├── CHANGELOG.md
 ├── LICENSE                        # Apache License 2.0
@@ -495,12 +499,13 @@ Runtime Python dependencies are intentionally minimal: `pydantic` and `marko`. N
 
 **v1.4 (shipped — 2026-04-27)**
 - DOCX input support via deterministic OOXML extraction (`extract-docx`) into audit-source markdown plus source map JSON
+- Deterministic audit path preparation (`prepare`) so temp paths and sidecar outputs are chosen by Python, with default no-overwrite behavior
 - External `.audit.md` report generation (`report`) for DOCX inputs; original DOCX files remain untouched
 - Machine-readable `.audit.json` report payloads with stable summary, scope, and finding fields
 - Scope Notice in DOCX reports for unsupported or partially represented areas such as footnotes, comments, images/OCR-only text, and unreconstructed Word numbering
 - Report locations resolve claim offsets back to source blocks such as paragraphs and table cells
 - Existing markdown-in / annotated-markdown-out flow unchanged
-- 49-test Python utility suite covering DOCX extraction, source-map alignment, DOCX fixture extraction, sidecar reports, report JSON, verifier metadata schema, local-only command contract, vendor guards, CLI, rendering, aggregation, and Korean legal helpers
+- 52-test Python utility suite covering audit preparation paths, DOCX extraction, source-map alignment, DOCX fixture extraction, sidecar reports, report JSON, verifier metadata schema, local-only command contract, vendor guards, CLI, rendering, aggregation, and Korean legal helpers
 
 **v1.x (planned)**
 - `SubagentStop` hook for automatic post-generation audit

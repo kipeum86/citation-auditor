@@ -1,7 +1,7 @@
 ---
 name: citation-auditor
 description: Audit a markdown or DOCX file by chunking extracted audit text, verifying claims, aggregating verdicts, and rendering annotated markdown or an external audit report.
-argument-hint: "[--local-only|--no-web|--offline] <file.md|file.docx>"
+argument-hint: "[--local-only|--no-web|--offline] [--overwrite] <file.md|file.docx>"
 disable-model-invocation: true
 ---
 
@@ -10,15 +10,17 @@ Audit the markdown or DOCX file described by `$ARGUMENTS`.
 1. Parse `$ARGUMENTS` into optional flags and one file path.
    - Recognized local-only flags: `--local-only`, `--no-web`, `--offline`.
    - If any recognized local-only flag is present, set `local_only` to `true`; otherwise set `local_only` to `false`.
+   - Recognized output flag: `--overwrite`. If present, pass `--overwrite` to `prepare`; otherwise do not overwrite existing sidecar outputs.
    - Do not infer `local_only` from natural-language sensitivity words alone. If the user mentions a sensitive, private, privileged, confidential, PHI, PII, 민감, 비밀, or 특권 document but did not pass one of the recognized flags, pause before auditing and ask whether to rerun with `--local-only`.
    - If an unknown flag is present, stop and ask for a valid flag or a plain file path.
    - If there is not exactly one file path after removing recognized flags, ask for one markdown or DOCX file path.
-2. Confirm the file path exists and has extension `.md`, `.markdown`, or `.docx`. If it does not, stop and ask for a valid markdown or DOCX path.
-   - If the file is `.md` or `.markdown`, use it as the audit input and use markdown mode.
-   - If the file is `.docx`, create two temporary paths for audit-source markdown and source map JSON, then run:
-     `python -m citation_auditor extract-docx "<file-path>" --out-md <tmp-source.md> --out-map <tmp-map.json>`
-     Use `<tmp-source.md>` as the audit input, remember `<tmp-map.json>` as the source map, and use DOCX report mode. The original DOCX must remain untouched.
-3. Run `python -m citation_auditor chunk <audit-input> --max-tokens 3000`, where `<audit-input>` is the original file in markdown mode and `<tmp-source.md>` in DOCX report mode.
+2. Run `python -m citation_auditor prepare "<file-path>"` plus `--overwrite` if the user supplied that flag. Parse stdout as JSON.
+   - If `prepare` fails because an output file already exists, stop and tell the user to rerun with `--overwrite` only if they intentionally want to replace the existing sidecar report.
+   - Use `mode`, `audit_input`, and `paths` from the prepare JSON. Do not invent temporary paths or sidecar output paths yourself.
+   - If `mode` is `docx_report`, run:
+     `python -m citation_auditor extract-docx "<source_path>" --out-md "<paths.audit_source_md>" --out-map "<paths.source_map_json>"`
+     The original DOCX must remain untouched.
+3. Run `python -m citation_auditor chunk "<audit_input>" --max-tokens 3000`, where `audit_input` comes from the prepare JSON.
 4. Parse stdout as JSON with the schema `{ "chunks": [...] }`.
 5. For each chunk, extract verifiable factual claims and citation-bearing claims using structured output with this schema:
    - `text: string`
@@ -79,13 +81,13 @@ Audit the markdown or DOCX file described by `$ARGUMENTS`.
     - `label` must be one of `verified` / `contradicted` / `unknown`.
     - `authority` must match the verifier skill's declared `metadata.authority` value. For older third-party verifier skills, top-level frontmatter `authority` is an accepted fallback.
 
-13. Write that JSON to a temp file and run:
-    `python -m citation_auditor aggregate <tmpfile>`
-14. Write the aggregate output to a temp file. Then:
+13. Write that JSON to `paths.aggregate_input_json` from the prepare JSON and run:
+    `python -m citation_auditor aggregate "<paths.aggregate_input_json>"`
+14. Write the aggregate stdout to `paths.aggregate_output_json` from the prepare JSON. Then:
     - In markdown mode, run:
-      `python -m citation_auditor render "<file-path>" <aggfile>`
+      `python -m citation_auditor render "<source_path>" "<paths.aggregate_output_json>"`
     - In DOCX report mode, write reports beside the original DOCX using the same basename plus `.audit.md` and `.audit.json`, then run:
-      `python -m citation_auditor report <tmp-map.json> <aggfile> --out <original-basename>.audit.md --out-json <original-basename>.audit.json`
+      `python -m citation_auditor report "<paths.source_map_json>" "<paths.aggregate_output_json>" --out "<paths.report_md>" --out-json "<paths.report_json>"`
 15. Return:
     - In markdown mode, only the final annotated markdown unless the user explicitly asked for intermediate JSON.
     - In DOCX report mode, only the generated `.audit.md` and `.audit.json` paths plus a concise Summary table from the markdown report. Do not paste the full report into chat unless the user explicitly asks for it.

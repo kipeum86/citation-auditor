@@ -126,6 +126,8 @@
 
 ### 3.1 Orchestration이 skill prompt에 과도하게 집중되어 있다
 
+상태: 부분 처리됨. `prepare` 명령으로 파일 타입 판정, temp work dir, aggregate 입출력 경로, DOCX sidecar output 경로 생성을 Python으로 내렸다. `finalize` 통합은 아직 남아 있어 render/report 최종 분기는 skill에 일부 남아 있다.
+
 문제: 파일 타입 판정, temp path 생성, chunk 실행, verifier dispatch, aggregate input 조립, render/report 분기까지 primary skill이 절차형 prompt로 들고 있다.
 
 왜 중요한가: 절차가 길어질수록 모델이 한 단계를 빠뜨리거나 이전 단계 변수를 잘못 참조할 가능성이 커진다. v1.3에서 aggregate schema를 명시해야 했던 문제와 같은 유형의 회귀가 반복될 수 있다.
@@ -134,7 +136,7 @@
 
 - Python에 `prepare` 명령을 추가한다.
   - 입력: 원본 path
-  - 출력: `{ mode, audit_input, source_map, output_path }`
+  - 출력: `{ mode, source_path, audit_input, work_dir, paths }`
 - Python에 `finalize` 명령을 추가한다.
   - 입력: prepare manifest + aggregated JSON
   - 출력: markdown render 또는 DOCX report
@@ -233,7 +235,7 @@
 
 상태: 부분 처리됨. `fixtures/v1.4-docx-legal.docx`와 `fixtures/v1.4-docx-legal.expected.md`를 추가했고, Python component suite에서 DOCX fixture 추출 순서를 검증한다. 실제 Claude Code slash-command 실행 결과는 아직 별도 확인이 필요하다.
 
-문제: Python 테스트는 49개로 늘었지만, v1.4.0 DOCX 경로는 실제 Claude Code slash command에서 아직 검증되지 않았다.
+문제: Python 테스트는 52개로 늘었지만, v1.4.0 DOCX 경로는 실제 Claude Code slash command에서 아직 검증되지 않았다.
 
 왜 중요한가: 이 프로젝트의 위험 지점은 Python 유틸보다 skill orchestration이다. component test가 통과해도 skill이 temp path, aggregate schema, final report 경로를 잘못 처리할 수 있다.
 
@@ -274,6 +276,8 @@
 - speculation 제외 규칙은 유지하되 “구체 사실을 포함하면 추출” 예시를 넣는다.
 
 ### 5.2 DOCX 분기에서 temp path와 output path 생성 규칙이 모델 재량에 맡겨져 있다
+
+상태: 처리됨. Python `prepare` 명령이 원본 파일을 받아 `mode`, `audit_input`, temp work dir, aggregate 입출력 경로, DOCX sidecar report 경로를 JSON으로 반환한다. DOCX sidecar `.audit.md` / `.audit.json`이 이미 있으면 기본은 실패하고, 사용자가 `--overwrite`를 명시한 경우에만 진행한다. Primary skill은 이제 `prepare` 결과의 `paths`만 사용한다.
 
 문제: skill은 `<tmp-source.md>`, `<tmp-map.json>`, `<original-basename>.audit.md` 같은 placeholder를 제시하지만, 실제 안전한 temp path 생성 규칙은 없다.
 

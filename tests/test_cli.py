@@ -165,6 +165,61 @@ def test_render_subcommand_prints_annotated_markdown(repo_root: Path, tmp_path: 
     assert "Normal sentence one. **[✅ general-web]**" in result.stdout
 
 
+def test_prepare_subcommand_returns_markdown_paths(repo_root: Path, tmp_path: Path) -> None:
+    markdown_path = tmp_path / "input.md"
+    markdown_path.write_text("Normal sentence one.", encoding="utf-8")
+
+    result = _run_module(repo_root, "prepare", str(markdown_path))
+
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    assert payload["mode"] == "markdown"
+    assert payload["source_type"] == "markdown"
+    assert payload["source_path"] == str(markdown_path.resolve())
+    assert payload["audit_input"] == str(markdown_path.resolve())
+    assert Path(payload["work_dir"]).is_dir()
+    assert payload["paths"]["audit_source_md"] is None
+    assert payload["paths"]["source_map_json"] is None
+    assert payload["paths"]["report_md"] is None
+    assert payload["paths"]["report_json"] is None
+    assert Path(payload["paths"]["aggregate_input_json"]).parent == Path(payload["work_dir"])
+    assert Path(payload["paths"]["aggregate_output_json"]).parent == Path(payload["work_dir"])
+
+
+def test_prepare_subcommand_returns_docx_paths_for_spaced_unicode_input(repo_root: Path, tmp_path: Path) -> None:
+    docx_path = tmp_path / "의견서 초안.docx"
+    _write_docx(docx_path, "<w:p><w:r><w:t>민법 제103조 인용.</w:t></w:r></w:p>")
+
+    result = _run_module(repo_root, "prepare", str(docx_path))
+
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    assert payload["mode"] == "docx_report"
+    assert payload["source_type"] == "docx"
+    assert payload["source_path"] == str(docx_path.resolve())
+    assert Path(payload["work_dir"]).is_dir()
+    assert Path(payload["audit_input"]).parent == Path(payload["work_dir"])
+    assert payload["paths"]["audit_source_md"] == payload["audit_input"]
+    assert Path(payload["paths"]["source_map_json"]).parent == Path(payload["work_dir"])
+    assert payload["paths"]["report_md"] == str((tmp_path / "의견서 초안.audit.md").resolve())
+    assert payload["paths"]["report_json"] == str((tmp_path / "의견서 초안.audit.json").resolve())
+
+
+def test_prepare_subcommand_blocks_existing_docx_outputs_without_overwrite(repo_root: Path, tmp_path: Path) -> None:
+    docx_path = tmp_path / "input.docx"
+    _write_docx(docx_path, "<w:p><w:r><w:t>민법 제103조 인용.</w:t></w:r></w:p>")
+    (tmp_path / "input.audit.md").write_text("old report", encoding="utf-8")
+
+    blocked = _run_module(repo_root, "prepare", str(docx_path))
+    allowed = _run_module(repo_root, "prepare", str(docx_path), "--overwrite")
+
+    assert blocked.returncode != 0
+    assert "already exists" in blocked.stderr
+    assert "--overwrite" in blocked.stderr
+    assert allowed.returncode == 0
+    assert json.loads(allowed.stdout)["overwrite"] is True
+
+
 def test_extract_docx_subcommand_writes_markdown_and_map(repo_root: Path, tmp_path: Path) -> None:
     docx_path = tmp_path / "input.docx"
     markdown_path = tmp_path / "input.audit-source.md"
