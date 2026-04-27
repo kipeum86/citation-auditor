@@ -34,6 +34,8 @@
 
 ### 1.3 DOCX 감사 보고서가 누락된 영역을 명시하지 않는다
 
+상태: 처리됨. v1.4 후속 마일스톤에서 `SourceMap.omissions`와 DOCX report `Scope Notice`를 추가했다.
+
 문제: v1.4.0 DOCX 추출은 각주, 미주, comments, 삭제된 track changes를 제외한다. 그러나 생성되는 `.audit.md` 보고서에는 “이 영역은 감사 대상에서 제외됨”이라는 범위 고지가 없다.
 
 왜 중요한가: 법률 문서의 핵심 인용은 각주/미주에 위치하는 경우가 많다. 보고서가 조용히 본문만 감사하면 사용자는 전체 DOCX가 감사되었다고 오해할 수 있다.
@@ -223,7 +225,7 @@
 
 ### 4.4 실제 slash-command E2E fixture가 아직 없다
 
-문제: Python 테스트는 38개로 늘었지만, v1.4.0 DOCX 경로는 실제 Claude Code slash command에서 아직 검증되지 않았다.
+문제: Python 테스트는 40개로 늘었지만, v1.4.0 DOCX 경로는 실제 Claude Code slash command에서 아직 검증되지 않았다.
 
 왜 중요한가: 이 프로젝트의 위험 지점은 Python 유틸보다 skill orchestration이다. component test가 통과해도 skill이 temp path, aggregate schema, final report 경로를 잘못 처리할 수 있다.
 

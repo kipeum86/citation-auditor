@@ -16,6 +16,10 @@ NS = {"w": W_NS}
 MAX_ZIP_ENTRIES = 10_000
 MAX_UNCOMPRESSED_BYTES = 50 * 1024 * 1024
 MAX_COMPRESSION_RATIO = 100
+DEFAULT_OMISSIONS = [
+    "Images, embedded objects, and OCR-only text were not extracted.",
+    "Word numbering styles were not reconstructed; only visible paragraph text was audited.",
+]
 
 
 class DocxExtractionError(ValueError):
@@ -23,7 +27,7 @@ class DocxExtractionError(ValueError):
 
 
 def extract_docx(path: Path, markdown_path: Path | None = None) -> tuple[str, SourceMap]:
-    document_xml = _read_document_xml(path)
+    document_xml, package_omissions = _read_document_xml(path)
     root = ElementTree.fromstring(document_xml)
     body = root.find("w:body", NS)
     if body is None:
@@ -36,6 +40,7 @@ def extract_docx(path: Path, markdown_path: Path | None = None) -> tuple[str, So
         source_path=str(path),
         markdown_path=str(markdown_path) if markdown_path is not None else None,
         blocks=blocks,
+        omissions=_dedupe_omissions([*DEFAULT_OMISSIONS, *package_omissions, *_document_omissions(root)]),
     )
     return markdown_text, source_map
 
@@ -47,12 +52,13 @@ def write_docx_extraction(input_docx: Path, out_md: Path, out_map: Path) -> dict
     return {"markdown": str(out_md), "map": str(out_map)}
 
 
-def _read_document_xml(path: Path) -> bytes:
+def _read_document_xml(path: Path) -> tuple[bytes, list[str]]:
     try:
         with zipfile.ZipFile(path) as archive:
             _validate_archive(archive)
+            omissions = _package_omissions(archive.namelist())
             try:
-                return archive.read("word/document.xml")
+                return archive.read("word/document.xml"), omissions
             except KeyError as exc:
                 raise DocxExtractionError("DOCX is missing word/document.xml") from exc
     except zipfile.BadZipFile as exc:
@@ -82,6 +88,35 @@ def _validate_zip_name(name: str) -> None:
     normalized = posixpath.normpath(name.replace("\\", "/"))
     if "\x00" in name or posixpath.isabs(normalized) or normalized == ".." or normalized.startswith("../"):
         raise DocxExtractionError(f"Unsafe DOCX zip entry: {name}")
+
+
+def _package_omissions(names: list[str]) -> list[str]:
+    name_set = set(names)
+    omissions: list[str] = []
+    if "word/footnotes.xml" in name_set:
+        omissions.append("Footnotes were detected but were not extracted in this version.")
+    if "word/endnotes.xml" in name_set:
+        omissions.append("Endnotes were detected but were not extracted in this version.")
+    if "word/comments.xml" in name_set:
+        omissions.append("Word comments were detected but were not extracted in this version.")
+    return omissions
+
+
+def _document_omissions(root: ElementTree.Element) -> list[str]:
+    omissions: list[str] = []
+    if root.find(".//w:del", NS) is not None:
+        omissions.append("Deleted tracked-change text was detected and excluded from the audit text.")
+    if root.find(".//w:commentReference", NS) is not None:
+        omissions.append("Comment references were detected; comment bodies were not extracted.")
+    return omissions
+
+
+def _dedupe_omissions(omissions: list[str]) -> list[str]:
+    deduped: list[str] = []
+    for omission in omissions:
+        if omission not in deduped:
+            deduped.append(omission)
+    return deduped
 
 
 def _extract_body_blocks(body: ElementTree.Element) -> list[tuple[str, str]]:

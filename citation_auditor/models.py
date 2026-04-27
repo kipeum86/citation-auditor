@@ -104,6 +104,7 @@ class SourceMap(BaseModel):
     source_path: str = Field(min_length=1)
     markdown_path: str | None = None
     blocks: list[SourceBlock] = Field(default_factory=list)
+    omissions: list[str] = Field(default_factory=list)
 
 
 class AggregateVerdictBundle(BaseModel):

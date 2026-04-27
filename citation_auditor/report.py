@@ -34,6 +34,10 @@ def render_audit_report(source_map: SourceMap, aggregate_output: AggregateOutput
         f"- Generated: {generated}",
         "- Mode: external report",
         "",
+        "## Scope Notice",
+        "",
+        *_scope_notice_lines(source_map),
+        "",
         "## Summary",
         "",
         "| Verdict | Count |",
@@ -98,6 +102,22 @@ def _detail_lines(finding_id: str, source_map: SourceMap, verdict: Verdict) -> l
     else:
         lines.append("- Evidence: none")
     lines.append("")
+    return lines
+
+
+def _scope_notice_lines(source_map: SourceMap) -> list[str]:
+    lines: list[str] = []
+    if source_map.source_type == "docx":
+        lines.append("- Audited content: DOCX body paragraphs and table cells extracted from `word/document.xml`.")
+    else:
+        lines.append(f"- Audited content: `{source_map.source_type}` text source.")
+
+    if source_map.omissions:
+        lines.append("- Not audited or partially represented:")
+        for omission in source_map.omissions:
+            lines.append(f"  - {omission}")
+    else:
+        lines.append("- No extraction omissions were recorded.")
     return lines
 
 

@@ -49,6 +49,29 @@ def test_extract_docx_ignores_empty_and_deleted_text(tmp_path: Path) -> None:
     assert "삭제된 잘못된 인용" not in markdown
     assert markdown == "삽입된 현재 본문."
     assert len(source_map.blocks) == 1
+    assert "Deleted tracked-change text was detected and excluded from the audit text." in source_map.omissions
+
+
+def test_extract_docx_records_scope_omissions(tmp_path: Path) -> None:
+    docx_path = tmp_path / "input.docx"
+    _write_docx(
+        docx_path,
+        "<w:p><w:r><w:t>본문 인용.</w:t></w:r><w:commentReference w:id=\"1\" /></w:p>",
+        extra_files={
+            "word/footnotes.xml": "<w:footnotes xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" />",
+            "word/endnotes.xml": "<w:endnotes xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" />",
+            "word/comments.xml": "<w:comments xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" />",
+        },
+    )
+
+    _, source_map = extract_docx(docx_path)
+
+    assert "Images, embedded objects, and OCR-only text were not extracted." in source_map.omissions
+    assert "Word numbering styles were not reconstructed; only visible paragraph text was audited." in source_map.omissions
+    assert "Footnotes were detected but were not extracted in this version." in source_map.omissions
+    assert "Endnotes were detected but were not extracted in this version." in source_map.omissions
+    assert "Word comments were detected but were not extracted in this version." in source_map.omissions
+    assert "Comment references were detected; comment bodies were not extracted." in source_map.omissions
 
 
 def test_chunk_offsets_align_with_docx_blocks(tmp_path: Path) -> None:
@@ -81,7 +104,7 @@ def test_extract_docx_rejects_unsafe_zip_entry(tmp_path: Path) -> None:
         extract_docx(docx_path)
 
 
-def _write_docx(path: Path, body_xml: str) -> None:
+def _write_docx(path: Path, body_xml: str, extra_files: dict[str, str] | None = None) -> None:
     document_xml = f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:body>
@@ -91,3 +114,5 @@ def _write_docx(path: Path, body_xml: str) -> None:
 """
     with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         archive.writestr("word/document.xml", document_xml)
+        for name, content in (extra_files or {}).items():
+            archive.writestr(name, content)

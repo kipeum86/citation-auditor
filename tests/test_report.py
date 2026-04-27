@@ -52,6 +52,9 @@ def test_report_renders_summary_counts_and_locations() -> None:
 
     report = render_audit_report(source_map, aggregate_output, generated_at="2026-04-26T00:00:00Z")
 
+    assert "## Scope Notice" in report
+    assert "Audited content: DOCX body paragraphs and table cells" in report
+    assert "No extraction omissions were recorded." in report
     assert "| contradicted | 1 |" in report
     assert "| unknown | 0 |" in report
     assert "| verified | 1 |" in report
@@ -100,6 +103,21 @@ def test_report_marks_unknown_and_cross_block_locations() -> None:
 
     assert "문단 1 (이어짐)" in report
     assert "위치 미상" in report
+
+
+def test_report_includes_scope_omissions() -> None:
+    source_map = SourceMap(
+        source_type="docx",
+        source_path="opinion.docx",
+        omissions=["Footnotes were detected but were not extracted in this version."],
+        blocks=[SourceBlock(id="P0001", kind="paragraph", label="문단 1", text="Alpha", start=0, end=5)],
+    )
+    aggregate_output = AggregateOutput(aggregated=[])
+
+    report = render_audit_report(source_map, aggregate_output, generated_at="2026-04-26T00:00:00Z")
+
+    assert "- Not audited or partially represented:" in report
+    assert "Footnotes were detected but were not extracted in this version." in report
 
 
 def _claim(text: str, start: int, end: int) -> Claim:
