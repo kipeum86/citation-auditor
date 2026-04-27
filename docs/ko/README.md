@@ -309,7 +309,7 @@ git pull
 
 v1.2에서는 새 번들 verifier 3종(`us-law`, `uk-law`, `eu-law`)을 추가하고 미국·영국·EU 법역 혼합 6 claim 영문 브리핑(`fixtures/v1.2-global-legal.md`)으로 재검증 — **6/6 정확 분류**. 검증 과정에서 v1.2 WebSearch fallback 설계가 처리한 실환경 4개 시나리오 확인: Cornell LII WebFetch 거부, BAILII Anubis anti-bot 차단, EUR-Lex JS 렌더 셸 빈 응답, 구조적으로 불가능한 가공 인용(`[2024] UKSC 9876`, `CELEX 39999L8888`). fixture를 `/citation-auditor:audit`에 넣고 3개 새 verifier를 로드하면 재현 가능합니다.
 
-v1.4 DOCX 모드는 `fixtures/v1.4-docx-legal.docx` 전용 slash-command fixture와 `fixtures/v1.4-docx-legal.expected.md` 기대값 문서를 갖습니다. 이 fixture는 한국 법령, 표 셀 안의 claim, EU 법령, 정량 사실 환각, 감사 대상에서 제외되어야 하는 전망 문장을 함께 포함합니다. 현재 DOCX E2E 상태는 `docs/v1.4-docx-e2e-status-20260427.md`에서 추적합니다.
+v1.4 DOCX 모드는 `fixtures/v1.4-docx-legal.docx` 전용 slash-command fixture와 `fixtures/v1.4-docx-legal.expected.md` 기대값 문서를 갖습니다. 이 fixture는 한국 법령, 표 셀 안의 claim, EU 법령, 정량 사실 환각, 감사 대상에서 제외되어야 하는 전망 문장을 함께 포함합니다. Slash-command registration과 artifact review를 포함한 현재 DOCX E2E 상태는 `docs/v1.4-docx-e2e-status-20260427.md`에서 추적합니다.
 
 ---
 
