@@ -231,7 +231,7 @@
 
 상태: 부분 처리됨. `fixtures/v1.4-docx-legal.docx`와 `fixtures/v1.4-docx-legal.expected.md`를 추가했고, Python component suite에서 DOCX fixture 추출 순서를 검증한다. 실제 Claude Code slash-command 실행 결과는 아직 별도 확인이 필요하다.
 
-문제: Python 테스트는 44개로 늘었지만, v1.4.0 DOCX 경로는 실제 Claude Code slash command에서 아직 검증되지 않았다.
+문제: Python 테스트는 47개로 늘었지만, v1.4.0 DOCX 경로는 실제 Claude Code slash command에서 아직 검증되지 않았다.
 
 왜 중요한가: 이 프로젝트의 위험 지점은 Python 유틸보다 skill orchestration이다. component test가 통과해도 skill이 temp path, aggregate schema, final report 경로를 잘못 처리할 수 있다.
 
@@ -242,6 +242,8 @@
 - CHANGELOG에 “component test”와 “real slash-command E2E”를 분리해 기록한다.
 
 ### 4.5 Vendor 업데이트 정책은 문서화되었지만 자동 보호장치가 없다
+
+상태: 처리됨. `scripts/vendor-into.sh`에 `--confirm-docx-upgrade`를 추가했고, v1.3 vendored target에 v1.4+를 실제 적용할 때 플래그가 없으면 중단한다. `--dry-run`은 차단하지 않지만 DOCX 동작 활성화와 필요한 플래그를 출력한다.
 
 문제: v1.4 계획 문서에는 각 legal agent를 전면 업데이트하지 말라고 되어 있지만, `scripts/vendor-into.sh` 자체에는 “v1.3 pin 유지”나 “canary 여부 확인” 같은 guard가 없다.
 

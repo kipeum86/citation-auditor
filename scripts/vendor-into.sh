@@ -8,7 +8,7 @@
 #   no cache refresh, no version ambiguity — git log shows the exact pinned version.
 #
 # Usage:
-#   ./scripts/vendor-into.sh <path-to-target-repo> [--no-python] [--dry-run]
+#   ./scripts/vendor-into.sh <path-to-target-repo> [--no-python] [--dry-run] [--confirm-docx-upgrade]
 #
 # What gets copied (into <target>):
 #   commands/audit.md              → <target>/.claude/commands/audit.md
@@ -30,6 +30,8 @@
 #   --no-python   Skip copying the citation_auditor/ Python package (if target already has it
 #                 as a git dep or you intend to install it separately).
 #   --dry-run     Show what would be copied without making changes.
+#   --confirm-docx-upgrade
+#                 Required when applying v1.4+ over an existing v1.3 vendored copy.
 
 set -euo pipefail
 
@@ -37,11 +39,13 @@ set -euo pipefail
 TARGET=""
 NO_PYTHON=0
 DRY_RUN=0
+CONFIRM_DOCX_UPGRADE=0
 
 for arg in "$@"; do
   case "$arg" in
     --no-python) NO_PYTHON=1 ;;
     --dry-run)   DRY_RUN=1 ;;
+    --confirm-docx-upgrade) CONFIRM_DOCX_UPGRADE=1 ;;
     -h|--help)
       sed -n '2,35p' "$0" | sed 's/^# //; s/^#//'
       exit 0
@@ -63,7 +67,7 @@ for arg in "$@"; do
 done
 
 if [ -z "$TARGET" ]; then
-  echo "Usage: $0 <path-to-target-repo> [--no-python] [--dry-run]" >&2
+  echo "Usage: $0 <path-to-target-repo> [--no-python] [--dry-run] [--confirm-docx-upgrade]" >&2
   exit 2
 fi
 
@@ -97,6 +101,44 @@ if [ -z "$VERSION" ]; then
   exit 1
 fi
 
+TARGET_VENDOR_STAMP="$TARGET/.claude/skills/citation-auditor/VENDOR.md"
+EXISTING_VENDOR_VERSION=""
+if [ -f "$TARGET_VENDOR_STAMP" ]; then
+  EXISTING_VENDOR_VERSION="$(
+    grep -E '^- Version:[[:space:]]*' "$TARGET_VENDOR_STAMP" 2>/dev/null \
+      | head -1 \
+      | sed -E 's/.*v?([0-9]+[.][0-9]+[.][0-9]+).*/\1/' \
+      || true
+  )"
+fi
+
+version_ge_1_4() {
+  local version="$1"
+  local major minor
+  if [[ ! "$version" =~ ^([0-9]+)[.]([0-9]+)[.]([0-9]+) ]]; then
+    return 1
+  fi
+  major="${BASH_REMATCH[1]}"
+  minor="${BASH_REMATCH[2]}"
+  if [ "$major" -gt 1 ]; then
+    return 0
+  fi
+  if [ "$major" -eq 1 ] && [ "$minor" -ge 4 ]; then
+    return 0
+  fi
+  return 1
+}
+
+SOURCE_HAS_DOCX_BEHAVIOR=0
+if version_ge_1_4 "$VERSION"; then
+  SOURCE_HAS_DOCX_BEHAVIOR=1
+fi
+
+TARGET_IS_V13_VENDOR=0
+case "$EXISTING_VENDOR_VERSION" in
+  1.3.*) TARGET_IS_V13_VENDOR=1 ;;
+esac
+
 # Check rsync
 if ! command -v rsync >/dev/null 2>&1; then
   echo "Error: rsync not found on PATH." >&2
@@ -108,9 +150,33 @@ echo "citation-auditor vendor"
 echo "  source:  $SOURCE"
 echo "  target:  $TARGET"
 echo "  version: v$VERSION"
+if [ -n "$EXISTING_VENDOR_VERSION" ]; then
+  echo "  current: v$EXISTING_VENDOR_VERSION"
+else
+  echo "  current: none"
+fi
 echo "  python:  $( [ "$NO_PYTHON" = "1" ] && echo 'SKIP (--no-python)' || echo 'include' )"
 echo "  mode:    $( [ "$DRY_RUN" = "1" ] && echo 'dry-run' || echo 'apply' )"
+if [ "$SOURCE_HAS_DOCX_BEHAVIOR" = "1" ]; then
+  echo "  docx:    DOCX behavior will be enabled in the vendored skill."
+fi
 echo
+
+if [ "$SOURCE_HAS_DOCX_BEHAVIOR" = "1" ] && [ "$TARGET_IS_V13_VENDOR" = "1" ]; then
+  cat >&2 <<EOF
+Warning: target is currently vendored at v${EXISTING_VENDOR_VERSION}, and v${VERSION} enables DOCX audit behavior.
+Recommended rollout: update one canary legal-agent repo first, verify markdown regression and DOCX audit behavior, then update other repos deliberately.
+EOF
+  if [ "$DRY_RUN" = "1" ]; then
+    echo "Dry-run only: applying this upgrade would require --confirm-docx-upgrade." >&2
+  elif [ "$CONFIRM_DOCX_UPGRADE" = "0" ]; then
+    echo "Error: rerun with --confirm-docx-upgrade to apply this v1.3 -> v${VERSION} vendor upgrade." >&2
+    exit 2
+  else
+    echo "DOCX upgrade confirmation received; proceeding with canary-aware vendor update." >&2
+  fi
+  echo
+fi
 
 RSYNC_FLAGS=(-a --delete-excluded --exclude='__pycache__' --exclude='*.pyc')
 if [ "$DRY_RUN" = "1" ]; then

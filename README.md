@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/license-Apache_2.0-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange.svg)](https://docs.anthropic.com/en/docs/claude-code)
-[![Tests](https://img.shields.io/badge/tests-44%2F44_passing-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-47%2F47_passing-brightgreen.svg)](tests/)
 
 > **⚠️ AI-generated audits only. Always have outputs reviewed by a qualified professional.** This plugin flags suspicious citations and factual claims but does not replace human legal or domain expertise. A `✅` badge means *"no contradiction found"* — not *"confirmed correct beyond doubt."* Treat `⚠️` and `❓` as mandatory manual-review triggers.
 
@@ -217,6 +217,9 @@ The script copies the orchestration skill, all bundled verifier skills, the `/ci
 **Flags:**
 - `--dry-run` — show what would be copied without making changes.
 - `--no-python` — skip the Python package (if your target already has `citation-auditor` as a git dependency or installed globally).
+- `--confirm-docx-upgrade` — required when applying v1.4+ over an existing v1.3 vendored copy. Use it after choosing a canary repo and confirming you want DOCX audit behavior enabled there.
+
+When the source version includes DOCX support, `--dry-run` explicitly prints that DOCX behavior will be enabled. Applying v1.4+ over a v1.3 vendored target is blocked until `--confirm-docx-upgrade` is provided.
 
 **After vendoring:**
 
@@ -384,7 +387,7 @@ uv sync --group dev
 uv run pytest
 ```
 
-44 tests cover the Python utility layer (DOCX extraction, DOCX fixture extraction, sidecar reports, machine-readable report JSON, chunking, rendering, aggregation, Korean legal citation parsing). Skills are tested end-to-end inside a real Claude Code session since they involve LLM orchestration and tool dispatch.
+47 tests cover the Python utility layer (DOCX extraction, DOCX fixture extraction, sidecar reports, machine-readable report JSON, vendoring guards, chunking, rendering, aggregation, Korean legal citation parsing). Skills are tested end-to-end inside a real Claude Code session since they involve LLM orchestration and tool dispatch.
 
 Smoke test the CLI utilities directly:
 
@@ -431,7 +434,7 @@ citation-auditor/
 │   ├── day1-mcp-resolution.md    # Korean-law MCP capability spike notes
 │   └── ko/
 │       └── README.md             # Korean mirror of this document
-├── tests/                         # 44 pytest cases
+├── tests/                         # 47 pytest cases
 ├── fixtures/                      # Synthetic test opinions
 ├── CHANGELOG.md
 ├── LICENSE                        # Apache License 2.0
@@ -488,7 +491,7 @@ Runtime Python dependencies are intentionally minimal: `pydantic` and `marko`. N
 - Scope Notice in DOCX reports for unsupported or partially represented areas such as footnotes, comments, images/OCR-only text, and unreconstructed Word numbering
 - Report locations resolve claim offsets back to source blocks such as paragraphs and table cells
 - Existing markdown-in / annotated-markdown-out flow unchanged
-- 44-test Python utility suite covering DOCX extraction, source-map alignment, DOCX fixture extraction, sidecar reports, report JSON, CLI, rendering, aggregation, and Korean legal helpers
+- 47-test Python utility suite covering DOCX extraction, source-map alignment, DOCX fixture extraction, sidecar reports, report JSON, vendor guards, CLI, rendering, aggregation, and Korean legal helpers
 
 **v1.x (planned)**
 - `SubagentStop` hook for automatic post-generation audit

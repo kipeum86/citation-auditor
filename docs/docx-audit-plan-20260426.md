@@ -494,6 +494,8 @@ v1.4.0
 
 - vendor 스크립트는 `citation_auditor/` 패키지 전체를 복사하므로, v1.4.0을 vendor하면 `docx.py`와 `report.py`도 자동으로 들어간다.
 - 다만 실제 DOCX UX는 `.claude/skills/citation-auditor/SKILL.md`의 `.docx` 분기가 있어야 활성화된다.
+- v1.3 vendored copy 위에 v1.4 이상을 실제 적용할 때는 `scripts/vendor-into.sh --confirm-docx-upgrade`가 필요하다. 플래그가 없으면 스크립트가 중단되어 bulk update를 막는다.
+- `--dry-run`은 중단하지 않지만, DOCX 동작이 활성화될 것과 실제 적용에 필요한 확인 플래그를 출력한다.
 - DOCX를 의도하지 않는 agent는 v1.3.x tag 또는 commit으로 checkout한 뒤 vendor를 실행해 pin 상태를 유지한다.
 - agent별로 skill을 local customization 한 경우, vendor 스크립트가 `.claude/skills/citation-auditor/`를 덮어쓴다는 점을 작업 전 확인한다.
 

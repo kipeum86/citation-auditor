@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/license-Apache_2.0-green.svg)](../../LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange.svg)](https://docs.anthropic.com/en/docs/claude-code)
-[![Tests](https://img.shields.io/badge/tests-44%2F44_passing-brightgreen.svg)](../../tests/)
+[![Tests](https://img.shields.io/badge/tests-47%2F47_passing-brightgreen.svg)](../../tests/)
 
 > **⚠️ 결과물은 AI가 생성한 감사 기록입니다. 반드시 자격 있는 전문가의 검토를 거친 뒤 사용하세요.** 이 플러그인은 의심스러운 인용과 사실 주장을 표시해 줄 뿐, 법률 전문가나 도메인 전문가의 판단을 대체하지 않습니다. `✅` 배지는 *"반박 증거를 찾지 못함"*을 의미하지 *"완전히 맞다는 확정"*이 아닙니다. `⚠️`와 `❓`는 **반드시 사람이 확인**해야 하는 표식입니다.
 
@@ -217,6 +217,9 @@ git pull
 **플래그:**
 - `--dry-run` — 실제 복사 없이 어떤 파일이 옮겨질지만 출력.
 - `--no-python` — Python 패키지 제외 (target이 이미 `citation-auditor`를 git 의존성으로 쓰거나 전역 설치 상태라면).
+- `--confirm-docx-upgrade` — 기존 v1.3 vendored copy 위에 v1.4+를 실제 적용할 때 필요. 캐너리 repo를 고르고 DOCX 감사 동작을 켜도 된다고 확인한 뒤 사용합니다.
+
+소스 버전에 DOCX 지원이 포함되어 있으면 `--dry-run` 출력에 DOCX 동작이 활성화된다고 명시됩니다. v1.3 vendored target에 v1.4+를 실제 적용하려면 `--confirm-docx-upgrade`가 없을 때 스크립트가 중단됩니다.
 
 **Vendor 후 할 일:**
 
@@ -375,7 +378,7 @@ uv sync --group dev
 uv run pytest
 ```
 
-44개 테스트가 Python 유틸 레이어(DOCX 추출, DOCX fixture 추출, 별도 보고서, 기계 판독 report JSON, 청킹, 렌더, 집계, 한국 법률 인용 파싱)를 커버합니다. Skill은 LLM 오케스트레이션과 tool dispatch가 얽혀 있어 **실제 Claude Code 세션에서 E2E로 검증**합니다.
+47개 테스트가 Python 유틸 레이어(DOCX 추출, DOCX fixture 추출, 별도 보고서, 기계 판독 report JSON, vendor 보호장치, 청킹, 렌더, 집계, 한국 법률 인용 파싱)를 커버합니다. Skill은 LLM 오케스트레이션과 tool dispatch가 얽혀 있어 **실제 Claude Code 세션에서 E2E로 검증**합니다.
 
 CLI 유틸 직접 스모크 테스트:
 
@@ -422,7 +425,7 @@ citation-auditor/
 │   ├── day1-mcp-resolution.md    # Korean-law MCP 해상도 스파이크 노트
 │   └── ko/
 │       └── README.md             # 이 문서 (한국어 미러)
-├── tests/                         # 44개 pytest 케이스
+├── tests/                         # 47개 pytest 케이스
 ├── fixtures/                      # 합성 테스트 의견서
 ├── CHANGELOG.md
 ├── LICENSE                        # Apache License 2.0
@@ -479,7 +482,7 @@ citation-auditor/
 - 각주, comments, 이미지/OCR 전용 텍스트, 재구성하지 않은 Word numbering 등 미지원 또는 부분 반영 영역을 DOCX 보고서 Scope Notice에 표시
 - claim offset을 문단·표 셀 같은 source block 위치로 되돌려 보고서에 표시
 - 기존 markdown-in / annotated-markdown-out 흐름은 변경 없음
-- DOCX 추출, source map 정합, DOCX fixture 추출, 별도 보고서, report JSON, CLI, 렌더, 집계, 한국 법률 helper를 커버하는 44개 Python 테스트
+- DOCX 추출, source map 정합, DOCX fixture 추출, 별도 보고서, report JSON, vendor 보호장치, CLI, 렌더, 집계, 한국 법률 helper를 커버하는 47개 Python 테스트
 
 **v1.x (계획)**
 - 생성 직후 자동 감사를 위한 `SubagentStop` hook
