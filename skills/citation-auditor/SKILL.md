@@ -77,11 +77,11 @@ Audit the markdown or DOCX file at `$0`.
 13. Write the aggregate output to a temp file. Then:
     - In markdown mode, run:
       `python -m citation_auditor render "$0" <aggfile>`
-    - In DOCX report mode, write a report beside the original DOCX using the same basename plus `.audit.md`, then run:
-      `python -m citation_auditor report <tmp-map.json> <aggfile> --out <original-basename>.audit.md`
+    - In DOCX report mode, write reports beside the original DOCX using the same basename plus `.audit.md` and `.audit.json`, then run:
+      `python -m citation_auditor report <tmp-map.json> <aggfile> --out <original-basename>.audit.md --out-json <original-basename>.audit.json`
 14. Return:
     - In markdown mode, only the final annotated markdown unless the user explicitly asked for intermediate JSON.
-    - In DOCX report mode, only the generated `.audit.md` path and a concise Summary table from that report. Do not paste the full report into chat unless the user explicitly asks for it.
+    - In DOCX report mode, only the generated `.audit.md` and `.audit.json` paths plus a concise Summary table from the markdown report. Do not paste the full report into chat unless the user explicitly asks for it.
 15. If claim extraction validation fails, retry once with a repair prompt. If it still fails, skip that chunk and note it briefly.
 16. If a verifier subagent returns invalid JSON, drop that candidate instead of inventing a verdict.
 17. If a line was skipped because it is a forecast, opinion, rumor, or unattributed speculation, treat that as expected behavior rather than an extraction failure.

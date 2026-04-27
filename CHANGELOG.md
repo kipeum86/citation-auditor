@@ -8,6 +8,7 @@ All notable changes to citation-auditor are documented here. This project follow
 - **DOCX input support** for `/citation-auditor:audit <file.docx>`. DOCX files are converted locally into audit-source markdown plus a source map; the original DOCX is not modified.
 - **`python -m citation_auditor extract-docx <input.docx> --out-md <path> --out-map <path>`** — deterministic OOXML extraction using the Python standard library (`zipfile` + `xml.etree.ElementTree`). Extracts body paragraphs and table-cell text, records source block offsets, and rejects unsafe/oversized zip structures.
 - **`python -m citation_auditor report <source-map.json> <aggregated.json> --out <file.audit.md>`** — renders sidecar audit reports for DOCX inputs with summary counts, finding table, source locations (`문단 N`, `표 N / 행 N / 열 N`), rationale, and evidence.
+- **`python -m citation_auditor report ... --out-json <file.audit.json>`** — writes machine-readable report payloads with stable `summary`, `scope`, and `findings` fields for downstream automation and agent repair loops.
 - **Source map schemas** (`SourceBlock`, `SourceMap`) for mapping aggregated claim offsets back to extracted DOCX source blocks.
 - **Scope Notice** in DOCX sidecar reports, including extraction omissions such as footnotes, endnotes, comments, deleted tracked changes, images/OCR-only text, and unreconstructed Word numbering.
 - **Optional `audit_reason` on claims** (`factual`, `citation`, `quantitative`, `temporal`) so the extractor can mark why uncited factual assertions entered the audit surface.
@@ -16,12 +17,12 @@ All notable changes to citation-auditor are documented here. This project follow
 - Primary `citation-auditor` skill now accepts `.md`, `.markdown`, and `.docx`. Markdown mode preserves the existing annotated-markdown output path; DOCX mode writes a sidecar `.audit.md` report and returns only the report path plus a concise summary.
 - Claim extraction guidance now covers verifiable factual claims even when no citation is attached, including dates, numeric claims, named legal authority or institutional action, and existence/non-existence claims.
 - `/citation-auditor:audit` slash command description and argument hint now mention DOCX.
-- README and Korean README updated for DOCX usage, v1.4.0 version badge, 42-test count, and new CLI commands.
+- README and Korean README updated for DOCX usage, v1.4.0 version badge, 43-test count, and new CLI commands.
 - Package/plugin versions bumped to `1.4.0` to avoid Claude Code plugin cache drift.
 
 ### Validation
-- Python utility suite expanded from 29 to **42 tests** covering DOCX extraction, table/paragraph source maps, extraction omission notices, deleted-text handling, source-map/chunk offset alignment, sidecar report rendering, new CLI commands, and all prior chunking/rendering/aggregation/Korean-law behavior.
-- `uv run pytest` passes: **42 passed**.
+- Python utility suite expanded from 29 to **43 tests** covering DOCX extraction, table/paragraph source maps, extraction omission notices, deleted-text handling, source-map/chunk offset alignment, sidecar report rendering, report JSON payloads, new CLI commands, and all prior chunking/rendering/aggregation/Korean-law behavior.
+- `uv run pytest` passes: **43 passed**.
 
 ### Notes
 - DOCX appendix export, Word comments, full footnote/endnote extraction, and tracked-change reconstruction remain future work. v1.4.0 intentionally ships the safer sidecar-report path first.

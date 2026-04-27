@@ -10,7 +10,7 @@ from citation_auditor.models import (
     Verdict,
     VerdictLabel,
 )
-from citation_auditor.report import render_audit_report
+from citation_auditor.report import build_audit_report_payload, render_audit_report
 
 
 def test_report_renders_summary_counts_and_locations() -> None:
@@ -118,6 +118,65 @@ def test_report_includes_scope_omissions() -> None:
 
     assert "- Not audited or partially represented:" in report
     assert "Footnotes were detected but were not extracted in this version." in report
+
+
+def test_report_payload_contains_machine_readable_findings() -> None:
+    source_map = SourceMap(
+        source_type="docx",
+        source_path="opinion.docx",
+        markdown_path="/tmp/opinion.audit-source.md",
+        omissions=["Comments were detected but were not extracted in this version."],
+        blocks=[SourceBlock(id="P0001", kind="paragraph", label="문단 1", text="Alpha claim.", start=0, end=12)],
+    )
+    aggregate_output = AggregateOutput(
+        aggregated=[
+            AggregatedVerdict(
+                claim=_claim("Alpha claim.", 0, 12),
+                verdict=Verdict(
+                    claim=_claim("Alpha claim.", 0, 12),
+                    label=VerdictLabel.CONTRADICTED,
+                    verifier_name="korean-law",
+                    authority=1.0,
+                    rationale="The cited law does not support the claim.",
+                    evidence=[Evidence(url="https://example.com/law", title="Law", snippet="Relevant excerpt.")],
+                ),
+            )
+        ]
+    )
+
+    payload = build_audit_report_payload(source_map, aggregate_output, generated_at="2026-04-26T00:00:00Z")
+
+    assert payload["source"] == {
+        "type": "docx",
+        "path": "opinion.docx",
+        "markdown_path": "/tmp/opinion.audit-source.md",
+    }
+    assert payload["generated"] == "2026-04-26T00:00:00Z"
+    assert payload["mode"] == "external_report"
+    assert payload["summary"] == {"contradicted": 1, "unknown": 0, "verified": 0, "total": 1}
+    assert payload["scope"]["omissions"] == ["Comments were detected but were not extracted in this version."]
+    assert payload["findings"] == [
+        {
+            "id": "C-001",
+            "label": "contradicted",
+            "location": "문단 1",
+            "verifier": "korean-law",
+            "authority": 1.0,
+            "claim": "Alpha claim.",
+            "claim_type": "factual",
+            "audit_reason": None,
+            "sentence_span": {"start": 0, "end": 12},
+            "rationale": "The cited law does not support the claim.",
+            "evidence": [
+                {
+                    "url": "https://example.com/law",
+                    "title": "Law",
+                    "snippet": "Relevant excerpt.",
+                    "extracted_text": None,
+                }
+            ],
+        }
+    ]
 
 
 def _claim(text: str, start: int, end: int) -> Claim:

@@ -6,11 +6,11 @@
 [![License](https://img.shields.io/badge/license-Apache_2.0-green.svg)](../../LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange.svg)](https://docs.anthropic.com/en/docs/claude-code)
-[![Tests](https://img.shields.io/badge/tests-42%2F42_passing-brightgreen.svg)](../../tests/)
+[![Tests](https://img.shields.io/badge/tests-43%2F43_passing-brightgreen.svg)](../../tests/)
 
 > **⚠️ 결과물은 AI가 생성한 감사 기록입니다. 반드시 자격 있는 전문가의 검토를 거친 뒤 사용하세요.** 이 플러그인은 의심스러운 인용과 사실 주장을 표시해 줄 뿐, 법률 전문가나 도메인 전문가의 판단을 대체하지 않습니다. `✅` 배지는 *"반박 증거를 찾지 못함"*을 의미하지 *"완전히 맞다는 확정"*이 아닙니다. `⚠️`와 `❓`는 **반드시 사람이 확인**해야 하는 표식입니다.
 
-**citation-auditor**는 Claude Code 용 **확장형 팩트체크·인용 감사 레이어**입니다. AI 에이전트가 생성한 마크다운 출력과 DOCX 문서에서 사실 주장을 추출하고, 도메인별 verifier 서브에이전트에게 검증을 위임한 뒤, 마크다운에는 배지(✅ / ⚠️ / ❓)와 `Audit Report`를 덧붙이고 DOCX에는 별도 `.audit.md` 보고서를 생성합니다.
+**citation-auditor**는 Claude Code 용 **확장형 팩트체크·인용 감사 레이어**입니다. AI 에이전트가 생성한 마크다운 출력과 DOCX 문서에서 사실 주장을 추출하고, 도메인별 verifier 서브에이전트에게 검증을 위임한 뒤, 마크다운에는 배지(✅ / ⚠️ / ❓)와 `Audit Report`를 덧붙이고 DOCX에는 별도 `.audit.md` / `.audit.json` 보고서를 생성합니다.
 
 인용 정확도가 중요한 모든 AI 에이전트에서 사용하도록 설계했습니다 — **법률 의견서, 의료 요약, 금융 분석, 학술 브리프, 언론 기사 초안**. 번들 verifier 7종이 **한국법**(Korean-law MCP), **미국법**(Cornell LII + CourtListener), **영국법**(BAILII + legislation.gov.uk), **EU법**(EUR-Lex), **학술 인용**(CrossRef / arXiv / PubMed), **일반 지식**(Wikipedia), **임의의 웹 소스**(WebSearch + WebFetch)를 커버합니다. 전체 표는 [번들 verifier](#번들-verifier) 섹션 참조. Verifier 인터페이스는 서드파티 확장이 가능하도록 열려 있습니다.
 
@@ -74,6 +74,7 @@ Python 유틸 레이어(`python -m citation_auditor extract-docx|chunk|aggregate
 - **판정 집계**: authority 가중치 기반 합의로 최종 verdict 결정
 - **재방출**: 원본 마크다운에 인라인 배지 + 문서 끝 `## Audit Report` 섹션 삽입
 - **DOCX 보고서**: 원본 DOCX를 수정하지 않고 별도 `.audit.md` 감사 보고서 생성
+- **기계 판독 보고서**: 후속 자동화와 agent repair loop가 읽기 쉬운 `.audit.json` payload 생성
 - **무인용 사실 감사**: 명시적 인용이 없는 날짜, 수치, 기관 행위, 존재 여부 주장 같은 구체적 사실도 감사 대상으로 포함
 - **파이프라인 무침입**: 기존 소비 측 스크립트(`md-to-docx.py` 등) 수정 0줄
 
@@ -184,7 +185,7 @@ scope 선택 프롬프트가 뜨면 **User scope** 선택. User scope는 `~/.cla
 /citation-auditor:audit path/to/opinion.docx
 ```
 
-DOCX 입력은 원본 Word 문서를 수정하지 않고 `path/to/opinion.audit.md` 별도 보고서를 생성합니다. 보고서에는 Scope Notice, 요약 카운트, `문단 3` 또는 `표 1 / 행 2 / 열 1` 같은 위치, rationale, evidence가 포함됩니다.
+DOCX 입력은 원본 Word 문서를 수정하지 않고 `path/to/opinion.audit.md` 별도 보고서를 생성합니다. 보고서에는 Scope Notice, 요약 카운트, `문단 3` 또는 `표 1 / 행 2 / 열 1` 같은 위치, rationale, evidence가 포함됩니다. 내부 `report` CLI는 자동화용 `path/to/opinion.audit.json`도 생성할 수 있으며, 안정적인 `summary`, `scope`, `findings` 필드를 제공합니다.
 
 ### 업데이트
 
@@ -372,7 +373,7 @@ uv sync --group dev
 uv run pytest
 ```
 
-42개 테스트가 Python 유틸 레이어(DOCX 추출, 별도 보고서, 청킹, 렌더, 집계, 한국 법률 인용 파싱)를 커버합니다. Skill은 LLM 오케스트레이션과 tool dispatch가 얽혀 있어 **실제 Claude Code 세션에서 E2E로 검증**합니다.
+43개 테스트가 Python 유틸 레이어(DOCX 추출, 별도 보고서, 기계 판독 report JSON, 청킹, 렌더, 집계, 한국 법률 인용 파싱)를 커버합니다. Skill은 LLM 오케스트레이션과 tool dispatch가 얽혀 있어 **실제 Claude Code 세션에서 E2E로 검증**합니다.
 
 CLI 유틸 직접 스모크 테스트:
 
@@ -408,7 +409,7 @@ citation-auditor/
 ├── citation_auditor/             # Python 유틸 패키지 (결정론 전용)
 │   ├── __main__.py               # CLI 진입점: extract-docx|chunk|aggregate|render|report|korean_law
 │   ├── docx.py                   # DOCX → audit-source markdown + source map 추출
-│   ├── report.py                 # DOCX 입력용 별도 감사 보고서 렌더러
+│   ├── report.py                 # DOCX 입력용 별도 markdown/JSON 감사 보고서 렌더러
 │   ├── chunking.py               # 마크다운 AST 청킹, 문단 오버랩
 │   ├── render.py                 # Marko 기반 배지 삽입 + Audit Report
 │   ├── aggregation.py            # Authority 가중 verdict 합의
@@ -419,7 +420,7 @@ citation-auditor/
 │   ├── day1-mcp-resolution.md    # Korean-law MCP 해상도 스파이크 노트
 │   └── ko/
 │       └── README.md             # 이 문서 (한국어 미러)
-├── tests/                         # 42개 pytest 케이스
+├── tests/                         # 43개 pytest 케이스
 ├── fixtures/                      # 합성 테스트 의견서
 ├── CHANGELOG.md
 ├── LICENSE                        # Apache License 2.0
@@ -472,10 +473,11 @@ citation-auditor/
 **v1.4 (출시 — 2026-04-27)**
 - 결정론 OOXML 추출(`extract-docx`)로 DOCX 입력을 audit-source markdown + source map JSON으로 변환
 - DOCX 입력용 외부 `.audit.md` 보고서 생성(`report`); 원본 DOCX는 수정하지 않음
+- 안정적인 summary, scope, finding 필드를 가진 기계 판독 `.audit.json` 보고서 payload
 - 각주, comments, 이미지/OCR 전용 텍스트, 재구성하지 않은 Word numbering 등 미지원 또는 부분 반영 영역을 DOCX 보고서 Scope Notice에 표시
 - claim offset을 문단·표 셀 같은 source block 위치로 되돌려 보고서에 표시
 - 기존 markdown-in / annotated-markdown-out 흐름은 변경 없음
-- DOCX 추출, source map 정합, 별도 보고서, CLI, 렌더, 집계, 한국 법률 helper를 커버하는 42개 Python 테스트
+- DOCX 추출, source map 정합, 별도 보고서, report JSON, CLI, 렌더, 집계, 한국 법률 helper를 커버하는 43개 Python 테스트
 
 **v1.x (계획)**
 - 생성 직후 자동 감사를 위한 `SubagentStop` hook

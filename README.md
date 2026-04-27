@@ -6,11 +6,11 @@
 [![License](https://img.shields.io/badge/license-Apache_2.0-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange.svg)](https://docs.anthropic.com/en/docs/claude-code)
-[![Tests](https://img.shields.io/badge/tests-42%2F42_passing-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-43%2F43_passing-brightgreen.svg)](tests/)
 
 > **⚠️ AI-generated audits only. Always have outputs reviewed by a qualified professional.** This plugin flags suspicious citations and factual claims but does not replace human legal or domain expertise. A `✅` badge means *"no contradiction found"* — not *"confirmed correct beyond doubt."* Treat `⚠️` and `❓` as mandatory manual-review triggers.
 
-**citation-auditor** is a pluggable fact-check and citation audit layer for Claude Code. It audits markdown output from AI agents and DOCX documents, extracts factual claims, dispatches domain-specific verifier subagents, and returns either annotated markdown with inline verdict badges (✅ / ⚠️ / ❓) or a sidecar `.audit.md` report for DOCX inputs.
+**citation-auditor** is a pluggable fact-check and citation audit layer for Claude Code. It audits markdown output from AI agents and DOCX documents, extracts factual claims, dispatches domain-specific verifier subagents, and returns either annotated markdown with inline verdict badges (✅ / ⚠️ / ❓) or sidecar `.audit.md` / `.audit.json` reports for DOCX inputs.
 
 Designed for agents that generate content requiring citation accuracy — **legal opinions, medical summaries, financial analyses, academic briefs, journalistic drafts**. Seven bundled verifiers span **Korean law** (Korean-law MCP), **US law** (Cornell LII + CourtListener), **UK law** (BAILII + legislation.gov.uk), **EU law** (EUR-Lex), **academic citations** (CrossRef / arXiv / PubMed), **general-knowledge facts** (Wikipedia), and **arbitrary web sources** (WebSearch + WebFetch). See [Bundled Verifiers](#bundled-verifiers) for the full table. The verifier interface is designed for third-party extension.
 
@@ -74,6 +74,7 @@ Today a careful reviewer spends 10–30 minutes per document spot-checking each 
 - **Aggregates** verdicts using authority-weighted consensus
 - **Re-emits** markdown with inline verdict badges + an appended `## Audit Report` section
 - **Generates** sidecar `.audit.md` reports for DOCX inputs without modifying the original DOCX
+- **Exports** machine-readable `.audit.json` report payloads for follow-up automation and agent repair loops
 - **Covers** concrete uncited factual assertions such as dates, numbers, institutional actions, and existence claims, not just sentences with explicit citations
 - **Preserves** all existing downstream pipelines (`md-to-docx.py`, etc.) without modification
 
@@ -184,7 +185,7 @@ Output is the same file with `**[✅ verifier-name]**` / `**[⚠️ verifier-nam
 /citation-auditor:audit path/to/opinion.docx
 ```
 
-DOCX inputs leave the original Word document untouched and create `path/to/opinion.audit.md`, a sidecar report with a Scope Notice, summary counts, locations such as `문단 3` or `표 1 / 행 2 / 열 1`, rationales, and evidence.
+DOCX inputs leave the original Word document untouched and create `path/to/opinion.audit.md`, a sidecar report with a Scope Notice, summary counts, locations such as `문단 3` or `표 1 / 행 2 / 열 1`, rationales, and evidence. The underlying `report` CLI can also write `path/to/opinion.audit.json` for automation with stable `summary`, `scope`, and `findings` fields.
 
 ### Update
 
@@ -381,7 +382,7 @@ uv sync --group dev
 uv run pytest
 ```
 
-42 tests cover the Python utility layer (DOCX extraction, sidecar reports, chunking, rendering, aggregation, Korean legal citation parsing). Skills are tested end-to-end inside a real Claude Code session since they involve LLM orchestration and tool dispatch.
+43 tests cover the Python utility layer (DOCX extraction, sidecar reports, machine-readable report JSON, chunking, rendering, aggregation, Korean legal citation parsing). Skills are tested end-to-end inside a real Claude Code session since they involve LLM orchestration and tool dispatch.
 
 Smoke test the CLI utilities directly:
 
@@ -417,7 +418,7 @@ citation-auditor/
 ├── citation_auditor/             # Python utility package (deterministic only)
 │   ├── __main__.py               # CLI entry: extract-docx|chunk|aggregate|render|report|korean_law
 │   ├── docx.py                   # DOCX → audit-source markdown + source map extraction
-│   ├── report.py                 # Sidecar audit report renderer for DOCX inputs
+│   ├── report.py                 # Sidecar markdown/JSON audit report renderer for DOCX inputs
 │   ├── chunking.py               # Markdown AST chunking with paragraph overlap
 │   ├── render.py                 # Marko-based badge insertion + Audit Report
 │   ├── aggregation.py            # Authority-weighted verdict consensus
@@ -428,7 +429,7 @@ citation-auditor/
 │   ├── day1-mcp-resolution.md    # Korean-law MCP capability spike notes
 │   └── ko/
 │       └── README.md             # Korean mirror of this document
-├── tests/                         # 42 pytest cases
+├── tests/                         # 43 pytest cases
 ├── fixtures/                      # Synthetic test opinions
 ├── CHANGELOG.md
 ├── LICENSE                        # Apache License 2.0
@@ -481,10 +482,11 @@ Runtime Python dependencies are intentionally minimal: `pydantic` and `marko`. N
 **v1.4 (shipped — 2026-04-27)**
 - DOCX input support via deterministic OOXML extraction (`extract-docx`) into audit-source markdown plus source map JSON
 - External `.audit.md` report generation (`report`) for DOCX inputs; original DOCX files remain untouched
+- Machine-readable `.audit.json` report payloads with stable summary, scope, and finding fields
 - Scope Notice in DOCX reports for unsupported or partially represented areas such as footnotes, comments, images/OCR-only text, and unreconstructed Word numbering
 - Report locations resolve claim offsets back to source blocks such as paragraphs and table cells
 - Existing markdown-in / annotated-markdown-out flow unchanged
-- 42-test Python utility suite covering DOCX extraction, source-map alignment, sidecar reports, CLI, rendering, aggregation, and Korean legal helpers
+- 43-test Python utility suite covering DOCX extraction, source-map alignment, sidecar reports, report JSON, CLI, rendering, aggregation, and Korean legal helpers
 
 **v1.x (planned)**
 - `SubagentStop` hook for automatic post-generation audit

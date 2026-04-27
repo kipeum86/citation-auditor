@@ -56,6 +56,7 @@ def build_parser() -> argparse.ArgumentParser:
     report_parser.add_argument("source_map", type=Path, help="Source map JSON file.")
     report_parser.add_argument("aggregated_json", type=Path, help="Aggregated verdict JSON file.")
     report_parser.add_argument("--out", type=Path, help="Output audit report markdown path.")
+    report_parser.add_argument("--out-json", type=Path, help="Output machine-readable audit report JSON path.")
     report_parser.set_defaults(func=_run_report)
 
     korean_law_parser = subparsers.add_parser("korean_law", help="Pure helpers for Korean legal citation parsing.")
@@ -163,11 +164,14 @@ def _run_extract_docx(args: argparse.Namespace) -> int:
 
 
 def _run_report(args: argparse.Namespace) -> int:
-    report = write_audit_report(args.source_map, args.aggregated_json, args.out)
+    report = write_audit_report(args.source_map, args.aggregated_json, args.out, args.out_json)
     if args.out is None:
         print(report)
     else:
-        _print_json({"report": str(args.out)})
+        payload = {"report": str(args.out)}
+        if args.out_json is not None:
+            payload["json"] = str(args.out_json)
+        _print_json(payload)
     return 0
 
 

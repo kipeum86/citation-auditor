@@ -210,6 +210,7 @@ def test_report_subcommand_writes_external_markdown(repo_root: Path, tmp_path: P
     map_path = tmp_path / "input.map.json"
     aggregate_path = tmp_path / "aggregated.json"
     report_path = tmp_path / "input.audit.md"
+    report_json_path = tmp_path / "input.audit.json"
     map_path.write_text(
         json.dumps(
             {
@@ -260,13 +261,27 @@ def test_report_subcommand_writes_external_markdown(repo_root: Path, tmp_path: P
         encoding="utf-8",
     )
 
-    result = _run_module(repo_root, "report", str(map_path), str(aggregate_path), "--out", str(report_path))
+    result = _run_module(
+        repo_root,
+        "report",
+        str(map_path),
+        str(aggregate_path),
+        "--out",
+        str(report_path),
+        "--out-json",
+        str(report_json_path),
+    )
 
     assert result.returncode == 0
-    assert json.loads(result.stdout) == {"report": str(report_path)}
+    assert json.loads(result.stdout) == {"report": str(report_path), "json": str(report_json_path)}
     report = report_path.read_text(encoding="utf-8")
     assert "| unknown | 1 |" in report
     assert "| C-001 | unknown | 문단 1 | general-web | Normal sentence one. |" in report
+    payload = json.loads(report_json_path.read_text(encoding="utf-8"))
+    assert payload["summary"] == {"contradicted": 0, "unknown": 1, "verified": 0, "total": 1}
+    assert payload["findings"][0]["id"] == "C-001"
+    assert payload["findings"][0]["location"] == "문단 1"
+    assert payload["findings"][0]["claim"] == "Normal sentence one."
 
 
 def test_aggregate_invalid_json_fails_nonzero(repo_root: Path, tmp_path: Path) -> None:

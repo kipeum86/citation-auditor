@@ -215,6 +215,8 @@
 
 ### 4.3 DOCX report는 machine-readable output이 없다
 
+상태: 처리됨. `report --out-json <path>`를 추가했고, markdown report는 동일 payload의 사람이 읽는 projection으로 렌더링한다.
+
 문제: `.audit.md`는 사람이 읽기 좋지만, 다른 legal agent가 후속 수정 루프를 돌리기에는 파싱이 불안정하다.
 
 왜 중요한가: 사용자는 여러 legal agent에 citation-auditor를 심어 쓰고 있다. 후속 agent가 `contradicted`/`unknown`만 읽어 수정 요청을 생성하려면 안정적인 JSON artifact가 필요하다.
@@ -227,7 +229,7 @@
 
 ### 4.4 실제 slash-command E2E fixture가 아직 없다
 
-문제: Python 테스트는 42개로 늘었지만, v1.4.0 DOCX 경로는 실제 Claude Code slash command에서 아직 검증되지 않았다.
+문제: Python 테스트는 43개로 늘었지만, v1.4.0 DOCX 경로는 실제 Claude Code slash command에서 아직 검증되지 않았다.
 
 왜 중요한가: 이 프로젝트의 위험 지점은 Python 유틸보다 skill orchestration이다. component test가 통과해도 skill이 temp path, aggregate schema, final report 경로를 잘못 처리할 수 있다.
 
