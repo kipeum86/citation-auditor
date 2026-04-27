@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/license-Apache_2.0-green.svg)](../../LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange.svg)](https://docs.anthropic.com/en/docs/claude-code)
-[![Tests](https://img.shields.io/badge/tests-40%2F40_passing-brightgreen.svg)](../../tests/)
+[![Tests](https://img.shields.io/badge/tests-42%2F42_passing-brightgreen.svg)](../../tests/)
 
 > **⚠️ 결과물은 AI가 생성한 감사 기록입니다. 반드시 자격 있는 전문가의 검토를 거친 뒤 사용하세요.** 이 플러그인은 의심스러운 인용과 사실 주장을 표시해 줄 뿐, 법률 전문가나 도메인 전문가의 판단을 대체하지 않습니다. `✅` 배지는 *"반박 증거를 찾지 못함"*을 의미하지 *"완전히 맞다는 확정"*이 아닙니다. `⚠️`와 `❓`는 **반드시 사람이 확인**해야 하는 표식입니다.
 
@@ -74,6 +74,7 @@ Python 유틸 레이어(`python -m citation_auditor extract-docx|chunk|aggregate
 - **판정 집계**: authority 가중치 기반 합의로 최종 verdict 결정
 - **재방출**: 원본 마크다운에 인라인 배지 + 문서 끝 `## Audit Report` 섹션 삽입
 - **DOCX 보고서**: 원본 DOCX를 수정하지 않고 별도 `.audit.md` 감사 보고서 생성
+- **무인용 사실 감사**: 명시적 인용이 없는 날짜, 수치, 기관 행위, 존재 여부 주장 같은 구체적 사실도 감사 대상으로 포함
 - **파이프라인 무침입**: 기존 소비 측 스크립트(`md-to-docx.py` 등) 수정 0줄
 
 ## 지원하지 않는 기능
@@ -371,7 +372,7 @@ uv sync --group dev
 uv run pytest
 ```
 
-40개 테스트가 Python 유틸 레이어(DOCX 추출, 별도 보고서, 청킹, 렌더, 집계, 한국 법률 인용 파싱)를 커버합니다. Skill은 LLM 오케스트레이션과 tool dispatch가 얽혀 있어 **실제 Claude Code 세션에서 E2E로 검증**합니다.
+42개 테스트가 Python 유틸 레이어(DOCX 추출, 별도 보고서, 청킹, 렌더, 집계, 한국 법률 인용 파싱)를 커버합니다. Skill은 LLM 오케스트레이션과 tool dispatch가 얽혀 있어 **실제 Claude Code 세션에서 E2E로 검증**합니다.
 
 CLI 유틸 직접 스모크 테스트:
 
@@ -418,7 +419,7 @@ citation-auditor/
 │   ├── day1-mcp-resolution.md    # Korean-law MCP 해상도 스파이크 노트
 │   └── ko/
 │       └── README.md             # 이 문서 (한국어 미러)
-├── tests/                         # 40개 pytest 케이스
+├── tests/                         # 42개 pytest 케이스
 ├── fixtures/                      # 합성 테스트 의견서
 ├── CHANGELOG.md
 ├── LICENSE                        # Apache License 2.0
@@ -474,7 +475,7 @@ citation-auditor/
 - 각주, comments, 이미지/OCR 전용 텍스트, 재구성하지 않은 Word numbering 등 미지원 또는 부분 반영 영역을 DOCX 보고서 Scope Notice에 표시
 - claim offset을 문단·표 셀 같은 source block 위치로 되돌려 보고서에 표시
 - 기존 markdown-in / annotated-markdown-out 흐름은 변경 없음
-- DOCX 추출, source map 정합, 별도 보고서, CLI, 렌더, 집계, 한국 법률 helper를 커버하는 40개 Python 테스트
+- DOCX 추출, source map 정합, 별도 보고서, CLI, 렌더, 집계, 한국 법률 helper를 커버하는 42개 Python 테스트
 
 **v1.x (계획)**
 - 생성 직후 자동 감사를 위한 `SubagentStop` hook

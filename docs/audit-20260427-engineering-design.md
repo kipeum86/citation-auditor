@@ -10,6 +10,8 @@
 
 ### 1.1 Claim 추출 기준이 문서 설명보다 좁다
 
+상태: 처리됨. 후속 마일스톤에서 primary skill의 추출 기준을 “verifiable factual claims and citation-bearing claims”로 넓히고, `Claim.audit_reason` 선택 필드를 추가했다.
+
 문제: primary skill은 “factual, citation-bearing claims”만 추출하라고 지시한다. README는 사실 주장과 인용을 모두 감사한다고 설명하지만, 실제 지시는 citation-bearing에 치우쳐 있어 출처 없이 쓰인 정량·시점·고유명사 사실 주장이 누락될 수 있다.
 
 왜 중요한가: 법률 의견서에서 위험한 문장은 항상 명시적 인용을 동반하지 않는다. “2024년부터 시행”, “시장 규모 15% 성장”, “A 기관이 고시” 같은 문장이 citation-bearing이 아니라는 이유로 빠지면 출력 품질이 사용자가 기대하는 감사 범위보다 좁아진다.
@@ -225,7 +227,7 @@
 
 ### 4.4 실제 slash-command E2E fixture가 아직 없다
 
-문제: Python 테스트는 40개로 늘었지만, v1.4.0 DOCX 경로는 실제 Claude Code slash command에서 아직 검증되지 않았다.
+문제: Python 테스트는 42개로 늘었지만, v1.4.0 DOCX 경로는 실제 Claude Code slash command에서 아직 검증되지 않았다.
 
 왜 중요한가: 이 프로젝트의 위험 지점은 Python 유틸보다 skill orchestration이다. component test가 통과해도 skill이 temp path, aggregate schema, final report 경로를 잘못 처리할 수 있다.
 
@@ -250,6 +252,8 @@
 ## 5. Prompt Engineering Specifics
 
 ### 5.1 “citation-bearing” 표현이 모델의 추출 범위를 잘못 좁힌다
+
+상태: 처리됨. 후속 마일스톤에서 “factual or citation-bearing” 의미가 되도록 primary skill 문구와 예시를 수정했다.
 
 문제: skill 4단계의 “factual, citation-bearing claims”는 모델에게 “인용이 없는 사실 문장은 제외해도 된다”는 신호로 읽힐 수 있다.
 

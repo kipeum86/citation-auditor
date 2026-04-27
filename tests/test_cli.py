@@ -54,6 +54,7 @@ def test_aggregate_subcommand_accepts_file_and_normalizes_offsets(repo_root: Pat
                             "sentence_span": {"start": 0, "end": 12},
                             "claim_type": "factual",
                             "suggested_verifier": "general-web",
+                            "audit_reason": "factual",
                         },
                         "candidates": [
                             {
@@ -62,6 +63,7 @@ def test_aggregate_subcommand_accepts_file_and_normalizes_offsets(repo_root: Pat
                                     "sentence_span": {"start": 0, "end": 12},
                                     "claim_type": "factual",
                                     "suggested_verifier": "general-web",
+                                    "audit_reason": "factual",
                                 },
                                 "label": "verified",
                                 "verifier_name": "general-web",
@@ -83,6 +85,7 @@ def test_aggregate_subcommand_accepts_file_and_normalizes_offsets(repo_root: Pat
     payload = AggregateOutput.model_validate_json(result.stdout)
     assert payload.aggregated[0].claim.sentence_span.start == 100
     assert payload.aggregated[0].verdict.claim.sentence_span.end == 112
+    assert payload.aggregated[0].claim.audit_reason == "factual"
 
 
 def test_aggregate_subcommand_accepts_stdin_via_dash(repo_root: Path) -> None:

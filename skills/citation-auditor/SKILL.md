@@ -14,11 +14,17 @@ Audit the markdown or DOCX file at `$0`.
      Use `<tmp-source.md>` as the audit input, remember `<tmp-map.json>` as the source map, and use DOCX report mode. The original DOCX must remain untouched.
 2. Run `python -m citation_auditor chunk <audit-input> --max-tokens 3000`, where `<audit-input>` is `$0` in markdown mode and `<tmp-source.md>` in DOCX report mode.
 3. Parse stdout as JSON with the schema `{ "chunks": [...] }`.
-4. For each chunk, extract only factual, citation-bearing claims using structured output with this schema:
+4. For each chunk, extract verifiable factual claims and citation-bearing claims using structured output with this schema:
    - `text: string`
    - `sentence_span: { start: integer, end: integer }`
    - `claim_type: factual | citation | quantitative | temporal | other`
    - `suggested_verifier: string | null`
+   - `audit_reason: factual | citation | quantitative | temporal | null`
+   Include concrete factual assertions even when no citation is attached, especially:
+   - dates and effective dates
+   - numeric claims
+   - named legal authority or institutional action
+   - existence or non-existence of a statute, case, agency act, paper, organization, or person
 5. Do not extract speculation, forecasts, rumors, advocacy, or soft prediction language such as:
    - `전망이다`
    - `예상된다`
@@ -42,10 +48,10 @@ Audit the markdown or DOCX file at `$0`.
       "verdicts": [
         {
           "chunk": { "index": 0, "text": "<full chunk text>", "segments": [ { "chunk_start": 0, "chunk_end": 44, "document_start": 0, "document_end": 44 } ] },
-          "claim": { "text": "<claim sentence>", "sentence_span": { "start": 64, "end": 268 }, "claim_type": "citation", "suggested_verifier": "us-law" },
+          "claim": { "text": "<claim sentence>", "sentence_span": { "start": 64, "end": 268 }, "claim_type": "citation", "suggested_verifier": "us-law", "audit_reason": "citation" },
           "candidates": [
             {
-              "claim": { "text": "<same claim as above>", "sentence_span": { "start": 64, "end": 268 }, "claim_type": "citation", "suggested_verifier": "us-law" },
+              "claim": { "text": "<same claim as above>", "sentence_span": { "start": 64, "end": 268 }, "claim_type": "citation", "suggested_verifier": "us-law", "audit_reason": "citation" },
               "verifier_name": "us-law",
               "authority": 0.9,
               "label": "contradicted",
@@ -61,6 +67,7 @@ Audit the markdown or DOCX file at `$0`.
     Rules:
     - One bundle per `(chunk, claim)` pair. If the same claim has two verifiers, put both candidates inside the same bundle's `candidates` array — do NOT create a second bundle for the same claim.
     - The top-level `claim` inside each bundle is the canonical claim; each candidate's `claim` must match it verbatim.
+    - `audit_reason` is optional for backward compatibility, but include it whenever claim extraction produced it.
     - `evidence` items require a non-empty `url` string. If the verifier returned `supporting_urls: []`, emit `"evidence": []` — do not emit `[{"url": ""}]`.
     - `label` must be one of `verified` / `contradicted` / `unknown`.
     - `authority` must match the verifier skill's declared authority value.

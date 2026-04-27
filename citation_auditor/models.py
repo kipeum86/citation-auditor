@@ -13,6 +13,13 @@ class ClaimType(str, Enum):
     OTHER = "other"
 
 
+class AuditReason(str, Enum):
+    FACTUAL = "factual"
+    CITATION = "citation"
+    QUANTITATIVE = "quantitative"
+    TEMPORAL = "temporal"
+
+
 class VerdictLabel(str, Enum):
     VERIFIED = "verified"
     CONTRADICTED = "contradicted"
@@ -41,6 +48,7 @@ class Claim(BaseModel):
     sentence_span: SentenceSpan
     claim_type: ClaimType
     suggested_verifier: str | None = None
+    audit_reason: AuditReason | None = None
 
 
 class ClaimList(BaseModel):

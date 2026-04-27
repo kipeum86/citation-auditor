@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/license-Apache_2.0-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange.svg)](https://docs.anthropic.com/en/docs/claude-code)
-[![Tests](https://img.shields.io/badge/tests-40%2F40_passing-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-42%2F42_passing-brightgreen.svg)](tests/)
 
 > **⚠️ AI-generated audits only. Always have outputs reviewed by a qualified professional.** This plugin flags suspicious citations and factual claims but does not replace human legal or domain expertise. A `✅` badge means *"no contradiction found"* — not *"confirmed correct beyond doubt."* Treat `⚠️` and `❓` as mandatory manual-review triggers.
 
@@ -74,6 +74,7 @@ Today a careful reviewer spends 10–30 minutes per document spot-checking each 
 - **Aggregates** verdicts using authority-weighted consensus
 - **Re-emits** markdown with inline verdict badges + an appended `## Audit Report` section
 - **Generates** sidecar `.audit.md` reports for DOCX inputs without modifying the original DOCX
+- **Covers** concrete uncited factual assertions such as dates, numbers, institutional actions, and existence claims, not just sentences with explicit citations
 - **Preserves** all existing downstream pipelines (`md-to-docx.py`, etc.) without modification
 
 ## What It Does NOT Do
@@ -380,7 +381,7 @@ uv sync --group dev
 uv run pytest
 ```
 
-40 tests cover the Python utility layer (DOCX extraction, sidecar reports, chunking, rendering, aggregation, Korean legal citation parsing). Skills are tested end-to-end inside a real Claude Code session since they involve LLM orchestration and tool dispatch.
+42 tests cover the Python utility layer (DOCX extraction, sidecar reports, chunking, rendering, aggregation, Korean legal citation parsing). Skills are tested end-to-end inside a real Claude Code session since they involve LLM orchestration and tool dispatch.
 
 Smoke test the CLI utilities directly:
 
@@ -427,7 +428,7 @@ citation-auditor/
 │   ├── day1-mcp-resolution.md    # Korean-law MCP capability spike notes
 │   └── ko/
 │       └── README.md             # Korean mirror of this document
-├── tests/                         # 40 pytest cases
+├── tests/                         # 42 pytest cases
 ├── fixtures/                      # Synthetic test opinions
 ├── CHANGELOG.md
 ├── LICENSE                        # Apache License 2.0
@@ -483,7 +484,7 @@ Runtime Python dependencies are intentionally minimal: `pydantic` and `marko`. N
 - Scope Notice in DOCX reports for unsupported or partially represented areas such as footnotes, comments, images/OCR-only text, and unreconstructed Word numbering
 - Report locations resolve claim offsets back to source blocks such as paragraphs and table cells
 - Existing markdown-in / annotated-markdown-out flow unchanged
-- 40-test Python utility suite covering DOCX extraction, source-map alignment, sidecar reports, CLI, rendering, aggregation, and Korean legal helpers
+- 42-test Python utility suite covering DOCX extraction, source-map alignment, sidecar reports, CLI, rendering, aggregation, and Korean legal helpers
 
 **v1.x (planned)**
 - `SubagentStop` hook for automatic post-generation audit

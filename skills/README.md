@@ -43,13 +43,15 @@ Verifier skills should accept either:
     "text": "string",
     "sentence_span": { "start": 0, "end": 10 },
     "claim_type": "factual",
-    "suggested_verifier": "your-verifier-name"
+    "suggested_verifier": "your-verifier-name",
+    "audit_reason": "factual"
   },
   "local_only": false
 }
 ```
 
 `sentence_span` values are chunk-relative when they come from the primary skill. Verifier skills should treat them as opaque metadata and should not rewrite them.
+`audit_reason` is optional and may be one of `factual`, `citation`, `quantitative`, or `temporal`. Verifiers may ignore it; it exists to explain why a claim entered the audit surface.
 
 ## Output Contract
 
