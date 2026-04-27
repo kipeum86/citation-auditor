@@ -1,12 +1,13 @@
 ---
 name: uk-law
 description: Verify UK law citations — primarily case law via neutral citation format (UKSC, UKHL, EWCA, EWHC, UKUT) against BAILII, plus UK statutes against legislation.gov.uk — and return verdict JSON.
-patterns:
-  - "\\[(?:19|20)\\d{2}\\]\\s*(?:UKSC|UKHL|UKPC|EWCA\\s*(?:Civ|Crim)|EWHC|UKUT|UKFTT|UKEAT|CSIH|CSOH|HCA)\\s*\\d+"
-  - "\\b[A-Z][\\w\\-']+\\s+v\\s+[A-Z][\\w\\-']+"
-  - "\\b[A-Z][\\w\\s]{1,60}?\\s+Act\\s+(?:19|20)\\d{2}\\b"
-  - "\\bR\\s+\\(?:on the application of\\s+|\\(?[A-Z])"
-authority: 0.9
+metadata:
+  patterns:
+    - "\\[(?:19|20)\\d{2}\\]\\s*(?:UKSC|UKHL|UKPC|EWCA\\s*(?:Civ|Crim)|EWHC|UKUT|UKFTT|UKEAT|CSIH|CSOH|HCA)\\s*\\d+"
+    - "\\b[A-Z][\\w\\-']+\\s+v\\s+[A-Z][\\w\\-']+"
+    - "\\b[A-Z][\\w\\s]{1,60}?\\s+Act\\s+(?:19|20)\\d{2}\\b"
+    - "\\bR\\s+\\(?:on the application of\\s+|\\(?[A-Z])"
+  authority: 0.9
 disable-model-invocation: true
 ---
 

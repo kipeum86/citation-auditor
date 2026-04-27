@@ -1,11 +1,12 @@
 ---
 name: korean-law
 description: Verify Korean legal claims using Korean-law MCP tools and return verdict JSON.
-patterns:
-  - "제\\s*\\d+\\s*조"
-  - "민법|형법|상법|행정법|개인정보보호법"
-  - "\\d+[다가나바도허]\\d+"
-authority: 1.0
+metadata:
+  patterns:
+    - "제\\s*\\d+\\s*조"
+    - "민법|형법|상법|행정법|개인정보보호법"
+    - "\\d+[다가나바도허]\\d+"
+  authority: 1.0
 disable-model-invocation: true
 ---
 

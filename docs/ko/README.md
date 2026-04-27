@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/license-Apache_2.0-green.svg)](../../LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange.svg)](https://docs.anthropic.com/en/docs/claude-code)
-[![Tests](https://img.shields.io/badge/tests-47%2F47_passing-brightgreen.svg)](../../tests/)
+[![Tests](https://img.shields.io/badge/tests-48%2F48_passing-brightgreen.svg)](../../tests/)
 
 > **⚠️ 결과물은 AI가 생성한 감사 기록입니다. 반드시 자격 있는 전문가의 검토를 거친 뒤 사용하세요.** 이 플러그인은 의심스러운 인용과 사실 주장을 표시해 줄 뿐, 법률 전문가나 도메인 전문가의 판단을 대체하지 않습니다. `✅` 배지는 *"반박 증거를 찾지 못함"*을 의미하지 *"완전히 맞다는 확정"*이 아닙니다. `⚠️`와 `❓`는 **반드시 사람이 확인**해야 하는 표식입니다.
 
@@ -119,7 +119,7 @@ Python 유틸 레이어(`python -m citation_auditor extract-docx|chunk|aggregate
 
 - **Skill이 오케스트레이션 주도.** `citation-auditor` skill이 Claude를 지휘해 청킹 → claim 추출 → verifier 라우팅 → Task 기반 병렬 검증 → 집계 → 렌더링까지 순차 진행.
 - **Python은 결정론 작업만 담당.** DOCX 텍스트 추출, 마크다운 AST 청킹, 역순 offset 배지 삽입, 별도 감사 보고서 렌더링, verdict 가중치 합의, pydantic 스키마 검증, 한국 법률 인용 파싱. LLM 호출/외부 API 호출 0건.
-- **Verifier = skill 파일.** 각 verifier는 독립된 `skills/verifiers/<name>/SKILL.md`. frontmatter에 `patterns` + `authority` 선언, 본문에 "claim을 받아 어떻게 검증하고 verdict JSON을 리턴할지" 명세. Claude가 Task tool 서브에이전트 디스패치를 통해 skill 로드.
+- **Verifier = skill 파일.** 각 verifier는 독립된 `skills/verifiers/<name>/SKILL.md`. frontmatter에 `metadata.patterns` + `metadata.authority` 선언, 본문에 "claim을 받아 어떻게 검증하고 verdict JSON을 리턴할지" 명세. Claude가 Task tool 서브에이전트 디스패치를 통해 skill 로드.
 
 **CC-native 설계 원칙:** 별도 Anthropic API 키 불필요, Tavily 키 불필요, LLM provider 설정 불필요. 당신 Claude Code 세션에서 이미 실행 중인 Claude 인스턴스가 모든 추론을 수행합니다. Privacy 설정(예: `ANTHROPIC_BASE_URL`로 로컬 엔드포인트 라우팅)은 자동 상속됩니다.
 
@@ -137,7 +137,7 @@ Python 유틸 레이어(`python -m citation_auditor extract-docx|chunk|aggregate
 | **`wikipedia`** | 0.7 | 역사·전기·설립연도 류 문장 패턴 | Wikipedia REST summary API (영문 + 한국어) → 엔터티 항목 조회 → 특정 사실 교차 확인, 요약으로 부족하면 전체 본문 WebFetch |
 | **`general-web`** | 0.5 | `.*` (나머지 모든 claim의 fallback) | WebSearch로 상위 3개 권위 있는 URL 선정 → WebFetch로 본문 수집 → LLM 기반 claim 판정 |
 
-**라우팅 순서:** claim extractor가 선언한 `suggested_verifier` 우선 → 로드된 verifier skill의 정규식 `patterns` 매칭 → `general-web` 폴백. 한 claim에 여러 verifier가 매치되면 Task tool 서브에이전트 디스패치로 **병렬 실행**.
+**라우팅 순서:** claim extractor가 선언한 `suggested_verifier` 우선 → 로드된 verifier skill의 `metadata.patterns` 정규식 매칭 → `general-web` 폴백. 기존 서드파티 verifier 호환을 위해 top-level `patterns`도 fallback으로 지원합니다. 한 claim에 여러 verifier가 매치되면 Task tool 서브에이전트 디스패치로 **병렬 실행**.
 
 **Verdict 집계 정책:** 한 claim에 여러 verifier가 verdict를 내면 **authority 가중치**가 높은 쪽이 우선. 동일 authority 충돌은 `❓`(억지 verdict 금지).
 
@@ -346,10 +346,11 @@ Verifier는 `skills/verifiers/<your-name>/SKILL.md` 하나짜리 skill 파일이
 ---
 name: your-verifier-name
 description: 검증 대상과 방식을 한 줄로 요약
-patterns:
-  - "정규식 패턴 1"
-  - "정규식 패턴 2"
-authority: 0.7          # 0.0 ~ 1.0 사이
+metadata:
+  patterns:
+    - "정규식 패턴 1"
+    - "정규식 패턴 2"
+  authority: 0.7          # 0.0 ~ 1.0 사이
 disable-model-invocation: true
 ---
 ```
@@ -378,7 +379,7 @@ uv sync --group dev
 uv run pytest
 ```
 
-47개 테스트가 Python 유틸 레이어(DOCX 추출, DOCX fixture 추출, 별도 보고서, 기계 판독 report JSON, vendor 보호장치, 청킹, 렌더, 집계, 한국 법률 인용 파싱)를 커버합니다. Skill은 LLM 오케스트레이션과 tool dispatch가 얽혀 있어 **실제 Claude Code 세션에서 E2E로 검증**합니다.
+48개 테스트가 Python 유틸 레이어(DOCX 추출, DOCX fixture 추출, 별도 보고서, 기계 판독 report JSON, verifier metadata 스키마, vendor 보호장치, 청킹, 렌더, 집계, 한국 법률 인용 파싱)를 커버합니다. Skill은 LLM 오케스트레이션과 tool dispatch가 얽혀 있어 **실제 Claude Code 세션에서 E2E로 검증**합니다.
 
 CLI 유틸 직접 스모크 테스트:
 
@@ -425,7 +426,7 @@ citation-auditor/
 │   ├── day1-mcp-resolution.md    # Korean-law MCP 해상도 스파이크 노트
 │   └── ko/
 │       └── README.md             # 이 문서 (한국어 미러)
-├── tests/                         # 47개 pytest 케이스
+├── tests/                         # 48개 pytest 케이스
 ├── fixtures/                      # 합성 테스트 의견서
 ├── CHANGELOG.md
 ├── LICENSE                        # Apache License 2.0
@@ -482,7 +483,7 @@ citation-auditor/
 - 각주, comments, 이미지/OCR 전용 텍스트, 재구성하지 않은 Word numbering 등 미지원 또는 부분 반영 영역을 DOCX 보고서 Scope Notice에 표시
 - claim offset을 문단·표 셀 같은 source block 위치로 되돌려 보고서에 표시
 - 기존 markdown-in / annotated-markdown-out 흐름은 변경 없음
-- DOCX 추출, source map 정합, DOCX fixture 추출, 별도 보고서, report JSON, vendor 보호장치, CLI, 렌더, 집계, 한국 법률 helper를 커버하는 47개 Python 테스트
+- DOCX 추출, source map 정합, DOCX fixture 추출, 별도 보고서, report JSON, verifier metadata 스키마, vendor 보호장치, CLI, 렌더, 집계, 한국 법률 helper를 커버하는 48개 Python 테스트
 
 **v1.x (계획)**
 - 생성 직후 자동 감사를 위한 `SubagentStop` hook

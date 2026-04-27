@@ -1,12 +1,13 @@
 ---
 name: eu-law
 description: Verify EU law citations (CELEX numbers, Regulations, Directives, and named acts like GDPR/DSA/DMA/AI Act) against EUR-Lex, the official EU law portal, and return verdict JSON.
-patterns:
-  - "\\bCELEX:?\\s*\\d+[A-Z]\\d+\\b"
-  - "\\bRegulation \\(EU\\)\\s*(?:No\\s*)?\\d+/\\d+\\b"
-  - "\\bDirective\\s*\\d+/\\d+(?:/EU|/EC)?\\b"
-  - "\\b(?:GDPR|DSA|DMA|AI Act|eIDAS|MiCA|NIS\\s*2|Copyright Directive|Data Act)\\b"
-authority: 0.9
+metadata:
+  patterns:
+    - "\\bCELEX:?\\s*\\d+[A-Z]\\d+\\b"
+    - "\\bRegulation \\(EU\\)\\s*(?:No\\s*)?\\d+/\\d+\\b"
+    - "\\bDirective\\s*\\d+/\\d+(?:/EU|/EC)?\\b"
+    - "\\b(?:GDPR|DSA|DMA|AI Act|eIDAS|MiCA|NIS\\s*2|Copyright Directive|Data Act)\\b"
+  authority: 0.9
 disable-model-invocation: true
 ---
 

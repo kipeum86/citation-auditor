@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/license-Apache_2.0-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange.svg)](https://docs.anthropic.com/en/docs/claude-code)
-[![Tests](https://img.shields.io/badge/tests-47%2F47_passing-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-48%2F48_passing-brightgreen.svg)](tests/)
 
 > **⚠️ AI-generated audits only. Always have outputs reviewed by a qualified professional.** This plugin flags suspicious citations and factual claims but does not replace human legal or domain expertise. A `✅` badge means *"no contradiction found"* — not *"confirmed correct beyond doubt."* Treat `⚠️` and `❓` as mandatory manual-review triggers.
 
@@ -119,7 +119,7 @@ Today a careful reviewer spends 10–30 minutes per document spot-checking each 
 
 - **Skills drive orchestration.** The `citation-auditor` skill directs Claude through chunking → claim extraction → verifier routing → Task-based parallel verification → aggregation → rendering.
 - **Python does only deterministic work.** DOCX text extraction, Markdown AST chunking, reverse-offset badge insertion, sidecar report rendering, verdict weighting, pydantic schema validation, Korean legal citation parsing. No LLM calls, no external API calls.
-- **Verifiers are skill files.** Each verifier is a separate `skills/verifiers/<name>/SKILL.md` with frontmatter declaring `patterns` and `authority` plus a body describing the verification protocol. Claude loads the skill via Task tool subagent dispatch.
+- **Verifiers are skill files.** Each verifier is a separate `skills/verifiers/<name>/SKILL.md` with frontmatter declaring `metadata.patterns` and `metadata.authority` plus a body describing the verification protocol. Claude loads the skill via Task tool subagent dispatch.
 
 **CC-native design principle:** no separate Anthropic API key, no Tavily key, no LLM provider configuration. The Claude instance already running in your Claude Code session does all the reasoning. Privacy settings (e.g., `ANTHROPIC_BASE_URL` routing to a local endpoint) are inherited automatically.
 
@@ -137,7 +137,7 @@ Today a careful reviewer spends 10–30 minutes per document spot-checking each 
 | **`wikipedia`** | 0.7 | Historical/biographical/founding-year language patterns | Wikipedia REST summary API (EN + KO) → entity page lookup → specific-fact cross-check, full-article WebFetch when summary is insufficient |
 | **`general-web`** | 0.5 | `.*` (fallback for everything else) | WebSearch → select top 3 authoritative URLs → WebFetch each → LLM-based claim adjudication |
 
-**Routing order:** `suggested_verifier` declared by the claim extractor → regex pattern match across loaded verifier skills → `general-web` fallback. When multiple verifiers match a single claim, all run in parallel via Task tool subagent dispatch.
+**Routing order:** `suggested_verifier` declared by the claim extractor → regex pattern match across loaded verifier skills using `metadata.patterns` → `general-web` fallback. Legacy top-level `patterns` remain supported for older third-party verifiers. When multiple verifiers match a single claim, all run in parallel via Task tool subagent dispatch.
 
 **Verdict aggregation:** when multiple verifiers produce verdicts for the same claim, the higher-authority verdict wins. Equal-authority conflicts resolve to `❓` (conflict signal, not false confidence).
 
@@ -355,10 +355,11 @@ A verifier is a single skill file at `skills/verifiers/<your-name>/SKILL.md` wit
 ---
 name: your-verifier-name
 description: One-line summary of what you verify.
-patterns:
-  - "regex-pattern-1"
-  - "regex-pattern-2"
-authority: 0.7          # between 0.0 and 1.0
+metadata:
+  patterns:
+    - "regex-pattern-1"
+    - "regex-pattern-2"
+  authority: 0.7          # between 0.0 and 1.0
 disable-model-invocation: true
 ---
 ```
@@ -387,7 +388,7 @@ uv sync --group dev
 uv run pytest
 ```
 
-47 tests cover the Python utility layer (DOCX extraction, DOCX fixture extraction, sidecar reports, machine-readable report JSON, vendoring guards, chunking, rendering, aggregation, Korean legal citation parsing). Skills are tested end-to-end inside a real Claude Code session since they involve LLM orchestration and tool dispatch.
+48 tests cover the Python utility layer (DOCX extraction, DOCX fixture extraction, sidecar reports, machine-readable report JSON, verifier metadata schema, vendoring guards, chunking, rendering, aggregation, Korean legal citation parsing). Skills are tested end-to-end inside a real Claude Code session since they involve LLM orchestration and tool dispatch.
 
 Smoke test the CLI utilities directly:
 
@@ -434,7 +435,7 @@ citation-auditor/
 │   ├── day1-mcp-resolution.md    # Korean-law MCP capability spike notes
 │   └── ko/
 │       └── README.md             # Korean mirror of this document
-├── tests/                         # 47 pytest cases
+├── tests/                         # 48 pytest cases
 ├── fixtures/                      # Synthetic test opinions
 ├── CHANGELOG.md
 ├── LICENSE                        # Apache License 2.0
@@ -491,7 +492,7 @@ Runtime Python dependencies are intentionally minimal: `pydantic` and `marko`. N
 - Scope Notice in DOCX reports for unsupported or partially represented areas such as footnotes, comments, images/OCR-only text, and unreconstructed Word numbering
 - Report locations resolve claim offsets back to source blocks such as paragraphs and table cells
 - Existing markdown-in / annotated-markdown-out flow unchanged
-- 47-test Python utility suite covering DOCX extraction, source-map alignment, DOCX fixture extraction, sidecar reports, report JSON, vendor guards, CLI, rendering, aggregation, and Korean legal helpers
+- 48-test Python utility suite covering DOCX extraction, source-map alignment, DOCX fixture extraction, sidecar reports, report JSON, verifier metadata schema, vendor guards, CLI, rendering, aggregation, and Korean legal helpers
 
 **v1.x (planned)**
 - `SubagentStop` hook for automatic post-generation audit

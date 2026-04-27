@@ -16,9 +16,10 @@ Each verifier skill must declare:
 ---
 name: your-verifier-name
 description: Short summary of what the verifier checks.
-patterns:
-  - "case-insensitive regex"
-authority: 0.0
+metadata:
+  patterns:
+    - "case-insensitive regex"
+  authority: 0.0
 disable-model-invocation: true
 ---
 ```
@@ -26,8 +27,9 @@ disable-model-invocation: true
 Rules:
 
 - `name` must be unique. The primary skill uses it for explicit routing.
-- `patterns` must be regex strings. Routing tests claim text against every pattern case-insensitively.
-- `authority` must be between `0.0` and `1.0`.
+- `metadata.patterns` must be regex strings. Routing tests claim text against every pattern case-insensitively.
+- `metadata.authority` must be between `0.0` and `1.0`.
+- Legacy top-level `patterns` and `authority` are still accepted as a fallback for older third-party verifiers, but new verifier skills should use `metadata`.
 - Higher authority wins during aggregation. Equal-authority conflicts resolve to `unknown`.
 
 ## Input Contract
@@ -79,7 +81,7 @@ Notes:
 The primary `citation-auditor` skill routes claims in this order:
 
 1. `suggested_verifier` exact match by skill `name`
-2. regex `patterns` match against claim text
+2. regex `metadata.patterns` match against claim text, with legacy top-level `patterns` as fallback
 3. fallback to `general-web`
 
 If multiple skills match by pattern, all of them may run and Python will aggregate the returned verdicts by authority.

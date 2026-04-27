@@ -34,7 +34,8 @@ Audit the markdown or DOCX file at `$0`.
 6. Keep claim offsets chunk-relative. Do not convert them to document offsets yourself.
 7. Route each claim to verifier skills:
    - If `suggested_verifier` is set and exactly matches a loaded verifier skill name, use it.
-   - Otherwise test the claim text against each verifier skill frontmatter `patterns` using case-insensitive regex matching and use every match.
+   - Otherwise test the claim text against each verifier skill frontmatter `metadata.patterns` using case-insensitive regex matching and use every match.
+   - For backward compatibility with older third-party verifier skills, if `metadata.patterns` is absent, fall back to top-level frontmatter `patterns`.
    - If nothing matches, fall back to `general-web`.
 8. For each `(claim, verifier)` pair, use the Task tool to dispatch a subagent that loads that verifier skill and receives `{ "claim": <claim JSON>, "local_only": false }` unless the user explicitly requested local-only/private verification, in which case set `local_only` to `true`. DOCX mode uses the same verifier payload rule as markdown mode.
 9. Require each verifier subagent to return only this JSON:
@@ -70,7 +71,7 @@ Audit the markdown or DOCX file at `$0`.
     - `audit_reason` is optional for backward compatibility, but include it whenever claim extraction produced it.
     - `evidence` items require a non-empty `url` string. If the verifier returned `supporting_urls: []`, emit `"evidence": []` — do not emit `[{"url": ""}]`.
     - `label` must be one of `verified` / `contradicted` / `unknown`.
-    - `authority` must match the verifier skill's declared authority value.
+    - `authority` must match the verifier skill's declared `metadata.authority` value. For older third-party verifier skills, top-level frontmatter `authority` is an accepted fallback.
 
 12. Write that JSON to a temp file and run:
     `python -m citation_auditor aggregate <tmpfile>`

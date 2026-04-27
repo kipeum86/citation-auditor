@@ -1,12 +1,13 @@
 ---
 name: wikipedia
 description: Verify general-knowledge factual claims (historical events, biographical details, organization founding dates, geographic facts) against Wikipedia's REST API and return verdict JSON.
-patterns:
-  - "\\b(?:founded|established|born|died|signed|signed in|published|released|invented) in \\d{3,4}"
-  - "\\b(?:in|on) \\d{3,4}\\b.{0,60}?(?:Treaty|Convention|Declaration|Amendment|Dynasty|Empire|Revolution|War)"
-  - "\\bThe (?:first|last) .{1,60}? was"
-  - "\\b(?:CEO|founder|president|king|queen|emperor) of [A-Z]"
-authority: 0.7
+metadata:
+  patterns:
+    - "\\b(?:founded|established|born|died|signed|signed in|published|released|invented) in \\d{3,4}"
+    - "\\b(?:in|on) \\d{3,4}\\b.{0,60}?(?:Treaty|Convention|Declaration|Amendment|Dynasty|Empire|Revolution|War)"
+    - "\\bThe (?:first|last) .{1,60}? was"
+    - "\\b(?:CEO|founder|president|king|queen|emperor) of [A-Z]"
+  authority: 0.7
 disable-model-invocation: true
 ---
 

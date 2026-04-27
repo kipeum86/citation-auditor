@@ -231,7 +231,7 @@
 
 상태: 부분 처리됨. `fixtures/v1.4-docx-legal.docx`와 `fixtures/v1.4-docx-legal.expected.md`를 추가했고, Python component suite에서 DOCX fixture 추출 순서를 검증한다. 실제 Claude Code slash-command 실행 결과는 아직 별도 확인이 필요하다.
 
-문제: Python 테스트는 47개로 늘었지만, v1.4.0 DOCX 경로는 실제 Claude Code slash command에서 아직 검증되지 않았다.
+문제: Python 테스트는 48개로 늘었지만, v1.4.0 DOCX 경로는 실제 Claude Code slash command에서 아직 검증되지 않았다.
 
 왜 중요한가: 이 프로젝트의 위험 지점은 Python 유틸보다 skill orchestration이다. component test가 통과해도 skill이 temp path, aggregate schema, final report 경로를 잘못 처리할 수 있다.
 
@@ -308,6 +308,8 @@
 - 민감성 표현이 있으나 flag가 없으면 감사 시작 전 “외부 조회를 차단할까요?”라고 묻도록 한다.
 
 ### 5.5 Frontmatter custom fields가 장기적으로 schema drift 위험을 만든다
+
+상태: 처리됨. bundled verifier의 `patterns`와 `authority`를 `metadata.patterns` / `metadata.authority`로 이동했고, primary skill은 legacy top-level field를 fallback으로 읽도록 갱신했다. Verifier authoring guide와 README 예시도 같은 구조로 맞췄다.
 
 문제: verifier skill frontmatter는 `patterns`, `authority` 같은 custom field를 사용한다. 과거 CHANGELOG에도 frontmatter schema compliance 문제가 known limitation으로 남아 있다.
 

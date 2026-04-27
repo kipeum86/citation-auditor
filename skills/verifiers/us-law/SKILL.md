@@ -1,12 +1,13 @@
 ---
 name: us-law
 description: Verify US law citations (U.S.C. and C.F.R. sections, Supreme Court opinions by reporter citation or case name) against Cornell Law School's Legal Information Institute (LII) and the CourtListener free API, and return verdict JSON.
-patterns:
-  - "\\b\\d+\\s*U\\.?S\\.?C\\.?\\s*§+\\s*\\d+[a-z0-9\\-]*(?:\\(\\w+\\))?"
-  - "\\b\\d+\\s*C\\.?F\\.?R\\.?\\s*§+\\s*\\d+\\.\\d+[a-z0-9\\-]*"
-  - "\\b\\d+\\s*U\\.?S\\.?\\s*\\d+(?:\\s*\\(\\d{4}\\))?"
-  - "\\b[A-Z][A-Za-z\\-'.]+\\s+v\\.\\s+[A-Z][A-Za-z\\-'.]+\\b"
-authority: 0.9
+metadata:
+  patterns:
+    - "\\b\\d+\\s*U\\.?S\\.?C\\.?\\s*§+\\s*\\d+[a-z0-9\\-]*(?:\\(\\w+\\))?"
+    - "\\b\\d+\\s*C\\.?F\\.?R\\.?\\s*§+\\s*\\d+\\.\\d+[a-z0-9\\-]*"
+    - "\\b\\d+\\s*U\\.?S\\.?\\s*\\d+(?:\\s*\\(\\d{4}\\))?"
+    - "\\b[A-Z][A-Za-z\\-'.]+\\s+v\\.\\s+[A-Z][A-Za-z\\-'.]+\\b"
+  authority: 0.9
 disable-model-invocation: true
 ---
 

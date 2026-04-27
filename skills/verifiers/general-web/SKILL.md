@@ -1,9 +1,10 @@
 ---
 name: general-web
 description: Verify general factual claims against up to three relevant web pages and return verdict JSON.
-patterns:
-  - ".*"
-authority: 0.5
+metadata:
+  patterns:
+    - ".*"
+  authority: 0.5
 disable-model-invocation: true
 ---
 

@@ -1,12 +1,13 @@
 ---
 name: scholarly
 description: Verify academic and scientific citations — DOI, arXiv IDs, PubMed IDs, and standard journal citations — against authoritative free APIs (CrossRef, arXiv, PubMed E-utilities) and return verdict JSON.
-patterns:
-  - "\\b10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+"
-  - "\\barXiv:\\s*\\d{4}\\.\\d{4,5}"
-  - "\\bPMID:?\\s*\\d{5,9}"
-  - "\\b(Nature|Science|Lancet|NEJM|Cell|JAMA|BMJ|PNAS|PLoS|IEEE|ACM)\\b"
-authority: 0.9
+metadata:
+  patterns:
+    - "\\b10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+"
+    - "\\barXiv:\\s*\\d{4}\\.\\d{4,5}"
+    - "\\bPMID:?\\s*\\d{5,9}"
+    - "\\b(Nature|Science|Lancet|NEJM|Cell|JAMA|BMJ|PNAS|PLoS|IEEE|ACM)\\b"
+  authority: 0.9
 disable-model-invocation: true
 ---
 
