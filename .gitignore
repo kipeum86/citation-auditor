@@ -14,6 +14,8 @@ docs/session-log-*.md
 docs/build-log-*.md
 docs/codex-prompt-*.md
 docs/design-*.md
+docs/*-plan-review-*.md
 docs/*-mcp-resolution*.md
+recipes/
 logs/
 *.log
