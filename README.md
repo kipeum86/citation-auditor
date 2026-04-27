@@ -316,7 +316,7 @@ v1.0 was validated against a **10-claim legal memo** (mixed real and fabricated 
 
 v1.2 added the three new bundled legal verifiers (`us-law`, `uk-law`, `eu-law`) and was validated against a **6-claim global-legal briefing** (`fixtures/v1.2-global-legal.md`) mixing US, UK, and EU jurisdictions with three real and three fabricated citations: **6/6 correctly classified**. The validation surfaced four real-world environment behaviors that the v1.2 WebSearch fallback handles correctly — Cornell LII WebFetch denial, BAILII Anubis anti-bot interstitial, EUR-Lex JS-rendered shell with empty body, and structurally impossible neutral citations (`[2024] UKSC 9876`, `CELEX 39999L8888`). Reproducible by dropping the fixture into `/citation-auditor:audit` with the three new verifiers loaded.
 
-v1.4 DOCX mode has a dedicated slash-command fixture at `fixtures/v1.4-docx-legal.docx`, with expected outcomes in `fixtures/v1.4-docx-legal.expected.md`. The fixture mixes Korean statutes, table-cell claims, EU law, a quantitative factual hallucination, and one forecast sentence that should be skipped. Current DOCX E2E status, including slash-command registration and artifact review, is tracked in `docs/v1.4-docx-e2e-status-20260427.md`.
+v1.4 DOCX mode has a dedicated slash-command fixture at `fixtures/v1.4-docx-legal.docx`, with expected outcomes in `fixtures/v1.4-docx-legal.expected.md`. The fixture mixes Korean statutes, table-cell claims, EU law, a quantitative factual hallucination, and one forecast sentence that should be skipped. Full DOCX slash-command E2E status is tracked in `docs/v1.4-docx-e2e-status-20260427.md`.
 
 ---
 

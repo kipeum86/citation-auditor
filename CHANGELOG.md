@@ -31,11 +31,11 @@ All notable changes to citation-auditor are documented here. This project follow
 ### Validation
 - Component validation: Python utility suite expanded from 29 to **55 tests** covering audit path preparation, audit finalization, DOCX extraction, DOCX fixture extraction, table/paragraph source maps, extraction omission notices, deleted-text handling, source-map/chunk offset alignment, sidecar report rendering, report JSON payloads, verifier metadata schema, local-only command contract, vendor upgrade guards, new CLI commands, and all prior chunking/rendering/aggregation/Korean-law behavior.
 - Component validation command: `uv run pytest` passes: **55 passed**.
-- Real slash-command E2E: Claude Code slash-command registration was confirmed, and Claude-run sidecar artifacts for `fixtures/v1.4-docx-legal.docx` match expected labels, locations, and summary counts. Final chat response format confirmation is still tracked separately, so this is recorded as registration + artifact-review pass rather than full E2E pass. See `docs/v1.4-docx-e2e-status-20260427.md`.
+- Real slash-command E2E: **passed**. Claude Code slash-command registration was confirmed; `/citation-auditor:audit fixtures/v1.4-docx-legal.docx` produced sidecar artifacts matching expected labels, locations, and summary counts; and the chat response returned only sidecar paths plus a concise summary/release-gate check rather than pasting the full report body. See `docs/v1.4-docx-e2e-status-20260427.md`.
 
 ### Notes
 - DOCX appendix export, Word comments, full footnote/endnote extraction, and tracked-change reconstruction remain future work. v1.4.0 intentionally ships the safer sidecar-report path first.
-- Existing vendored legal-agent copies should not be bulk-updated just for DOCX support. Update one canary project only after final chat response confirmation and only when that project actually needs DOCX auditing.
+- Existing vendored legal-agent copies should not be bulk-updated just for DOCX support. Update one canary project only when that project actually needs DOCX auditing.
 
 ## [1.3.0] — 2026-04-24
 

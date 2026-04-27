@@ -231,11 +231,11 @@
 - JSON에는 `findings: [{ id, label, location, claim, rationale, evidence }]`를 저장한다.
 - markdown report는 이 JSON을 사람이 읽는 projection으로 취급한다.
 
-### 4.4 실제 slash-command E2E 기록이 아직 완전히 닫히지 않았다
+### 4.4 실제 slash-command E2E fixture가 필요하다
 
-상태: 부분 처리됨. `fixtures/v1.4-docx-legal.docx`와 `fixtures/v1.4-docx-legal.expected.md`를 추가했고, Python component suite에서 DOCX fixture 추출 순서를 검증한다. Claude Code slash-command registration은 확인되었고, Claude-run sidecar artifacts도 기대 label/location/summary와 일치한다. 다만 실제 slash-command 채팅 응답이 보고서 전문 대신 경로와 요약만 반환했는지는 최종 확인이 필요하다.
+상태: 처리됨. `fixtures/v1.4-docx-legal.docx`와 `fixtures/v1.4-docx-legal.expected.md`를 추가했고, Python component suite에서 DOCX fixture 추출 순서를 검증했다. Claude Code slash-command registration이 확인되었고, Claude-run sidecar artifacts도 기대 label/location/summary와 일치했다. 최종 채팅 응답도 보고서 전문을 붙여넣지 않고 sidecar 경로, concise summary, release-gate verification만 반환했다.
 
-문제: Python 테스트는 55개로 늘었고 DOCX slash-command registration 및 sidecar artifact review도 통과했지만, v1.4.0 DOCX 경로의 최종 chat response transcript가 아직 repo에 기록되지 않았다.
+문제: Python component test만으로는 skill orchestration 품질을 보장할 수 없으므로, 실제 Claude Code slash command에서 DOCX 경로를 검증하는 fixture와 기록이 필요했다.
 
 왜 중요한가: 이 프로젝트의 위험 지점은 Python 유틸보다 skill orchestration이다. component test가 통과해도 skill이 temp path, aggregate schema, final report 경로를 잘못 처리할 수 있다.
 
