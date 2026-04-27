@@ -14,8 +14,10 @@ def test_local_only_flags_are_explicit_in_command_and_primary_skill(repo_root: P
     assert "--overwrite" in command
     assert "--overwrite" in skill
     assert "python -m citation_auditor prepare" in skill
+    assert "python -m citation_auditor finalize" in skill
+    assert "paths.prepare_manifest_json" in skill
     assert "paths.aggregate_input_json" in skill
-    assert "paths.report_md" in skill
+    assert "`finalize` stdout JSON" in skill
     assert "Pass `$ARGUMENTS` through unchanged" in command
     assert "Parse `$ARGUMENTS` into optional flags and one file path" in skill
     assert "Do not infer `local_only` from natural-language sensitivity words alone" in skill

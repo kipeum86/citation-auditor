@@ -17,6 +17,7 @@ Audit the markdown or DOCX file described by `$ARGUMENTS`.
 2. Run `python -m citation_auditor prepare "<file-path>"` plus `--overwrite` if the user supplied that flag. Parse stdout as JSON.
    - If `prepare` fails because an output file already exists, stop and tell the user to rerun with `--overwrite` only if they intentionally want to replace the existing sidecar report.
    - Use `mode`, `audit_input`, and `paths` from the prepare JSON. Do not invent temporary paths or sidecar output paths yourself.
+   - Write the exact prepare JSON stdout to `paths.prepare_manifest_json` before continuing.
    - If `mode` is `docx_report`, run:
      `python -m citation_auditor extract-docx "<source_path>" --out-md "<paths.audit_source_md>" --out-map "<paths.source_map_json>"`
      The original DOCX must remain untouched.
@@ -83,14 +84,11 @@ Audit the markdown or DOCX file described by `$ARGUMENTS`.
 
 13. Write that JSON to `paths.aggregate_input_json` from the prepare JSON and run:
     `python -m citation_auditor aggregate "<paths.aggregate_input_json>"`
-14. Write the aggregate stdout to `paths.aggregate_output_json` from the prepare JSON. Then:
-    - In markdown mode, run:
-      `python -m citation_auditor render "<source_path>" "<paths.aggregate_output_json>"`
-    - In DOCX report mode, write reports beside the original DOCX using the same basename plus `.audit.md` and `.audit.json`, then run:
-      `python -m citation_auditor report "<paths.source_map_json>" "<paths.aggregate_output_json>" --out "<paths.report_md>" --out-json "<paths.report_json>"`
+14. Write the aggregate stdout to `paths.aggregate_output_json` from the prepare JSON, then run:
+    `python -m citation_auditor finalize "<paths.prepare_manifest_json>" "<paths.aggregate_output_json>"`
 15. Return:
-    - In markdown mode, only the final annotated markdown unless the user explicitly asked for intermediate JSON.
-    - In DOCX report mode, only the generated `.audit.md` and `.audit.json` paths plus a concise Summary table from the markdown report. Do not paste the full report into chat unless the user explicitly asks for it.
+    - In markdown mode, only the `finalize` stdout annotated markdown unless the user explicitly asked for intermediate JSON.
+    - In DOCX report mode, parse the `finalize` stdout JSON and return only the generated `.audit.md` and `.audit.json` paths plus a concise Summary table from the JSON `summary`. Do not paste the full report into chat unless the user explicitly asks for it.
 16. If claim extraction validation fails, retry once with a repair prompt. If it still fails, skip that chunk and note it briefly.
 17. If a verifier subagent returns invalid JSON, drop that candidate instead of inventing a verdict.
 18. If a line was skipped because it is a forecast, opinion, rumor, or unattributed speculation, treat that as expected behavior rather than an extraction failure.

@@ -11,6 +11,7 @@ from pydantic import BaseModel, ValidationError
 from citation_auditor.aggregation import aggregate_verdicts
 from citation_auditor.chunking import ChunkSegment, MarkdownChunk, chunk_markdown
 from citation_auditor.docx import DocxExtractionError, write_docx_extraction
+from citation_auditor.finalize import FinalizeError, finalize_audit
 from citation_auditor.korean_law import LAW_ID_LOOKUP, CitationRef, extract_hang, extract_ho, normalize_case_number, parse_citation
 from citation_auditor.models import (
     AggregateInput,
@@ -51,6 +52,11 @@ def build_parser() -> argparse.ArgumentParser:
     prepare_parser.add_argument("input", type=Path, help="Markdown or DOCX file to audit.")
     prepare_parser.add_argument("--overwrite", action="store_true", help="Allow overwriting existing sidecar audit outputs.")
     prepare_parser.set_defaults(func=_run_prepare)
+
+    finalize_parser = subparsers.add_parser("finalize", help="Finalize a prepared audit run from aggregate output.")
+    finalize_parser.add_argument("prepare_manifest", type=Path, help="Prepare manifest JSON file.")
+    finalize_parser.add_argument("aggregated_json", type=Path, help="Aggregated verdict JSON file.")
+    finalize_parser.set_defaults(func=_run_finalize)
 
     extract_docx_parser = subparsers.add_parser("extract-docx", help="Extract DOCX text into audit-source markdown and source map JSON.")
     extract_docx_parser.add_argument("input_docx", type=Path, help="DOCX file to extract.")
@@ -168,6 +174,15 @@ def _run_prepare(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_finalize(args: argparse.Namespace) -> int:
+    result = finalize_audit(args.prepare_manifest, args.aggregated_json)
+    if isinstance(result, str):
+        print(result, end="" if result.endswith("\n") else "\n")
+    else:
+        _print_json(result)
+    return 0
+
+
 def _run_extract_docx(args: argparse.Namespace) -> int:
     payload = write_docx_extraction(args.input_docx, args.out_md, args.out_map)
     _print_json(payload)
@@ -261,7 +276,7 @@ def main(argv: list[str] | None = None) -> int:
     except json.JSONDecodeError as exc:
         print(exc, file=sys.stderr)
         return 1
-    except (DocxExtractionError, ParseError, PrepareError, OSError) as exc:
+    except (DocxExtractionError, FinalizeError, ParseError, PrepareError, OSError) as exc:
         print(exc, file=sys.stderr)
         return 1
 

@@ -7,6 +7,7 @@ All notable changes to citation-auditor are documented here. This project follow
 ### Added
 - **DOCX input support** for `/citation-auditor:audit <file.docx>`. DOCX files are converted locally into audit-source markdown plus a source map; the original DOCX is not modified.
 - **`python -m citation_auditor prepare <file.md|file.docx>`** — deterministic audit run path planning. For DOCX inputs it chooses safe temp paths plus `.audit.md` / `.audit.json` sidecar paths and refuses to overwrite existing sidecars unless `--overwrite` is supplied.
+- **`python -m citation_auditor finalize <prepare.json> <aggregated.json>`** — deterministic audit finalization. Markdown manifests render annotated markdown to stdout; DOCX manifests write sidecar `.audit.md` / `.audit.json` reports and print a short JSON summary.
 - **`python -m citation_auditor extract-docx <input.docx> --out-md <path> --out-map <path>`** — deterministic OOXML extraction using the Python standard library (`zipfile` + `xml.etree.ElementTree`). Extracts body paragraphs and table-cell text, records source block offsets, and rejects unsafe/oversized zip structures.
 - **`python -m citation_auditor report <source-map.json> <aggregated.json> --out <file.audit.md>`** — renders sidecar audit reports for DOCX inputs with summary counts, finding table, source locations (`문단 N`, `표 N / 행 N / 열 N`), rationale, and evidence.
 - **`python -m citation_auditor report ... --out-json <file.audit.json>`** — writes machine-readable report payloads with stable `summary`, `scope`, and `findings` fields for downstream automation and agent repair loops.
@@ -20,15 +21,16 @@ All notable changes to citation-auditor are documented here. This project follow
 ### Changed
 - Primary `citation-auditor` skill now accepts `.md`, `.markdown`, and `.docx`. Markdown mode preserves the existing annotated-markdown output path; DOCX mode writes a sidecar `.audit.md` report and returns only the report path plus a concise summary.
 - Primary `citation-auditor` skill now uses `prepare` output for audit input, temp aggregate files, source maps, and sidecar report paths instead of inventing placeholders in prompt text.
+- Primary `citation-auditor` skill now delegates final render/report branching to `finalize`, reducing prompt-level branching after aggregation.
 - Claim extraction guidance now covers verifiable factual claims even when no citation is attached, including dates, numeric claims, named legal authority or institutional action, and existence/non-existence claims.
 - Bundled verifier routing fields moved from top-level frontmatter `patterns` / `authority` to `metadata.patterns` / `metadata.authority`; the primary skill still accepts the legacy fields as fallback for third-party verifiers.
 - `/citation-auditor:audit` slash command description and argument hint now mention DOCX and local-only flags.
-- README and Korean README updated for DOCX usage, v1.4.0 version badge, 52-test count, verifier metadata schema, local-only flags, vendor upgrade guard, and new CLI commands.
+- README and Korean README updated for DOCX usage, v1.4.0 version badge, 55-test count, verifier metadata schema, local-only flags, vendor upgrade guard, and new CLI commands.
 - Package/plugin versions bumped to `1.4.0` to avoid Claude Code plugin cache drift.
 
 ### Validation
-- Component validation: Python utility suite expanded from 29 to **52 tests** covering audit path preparation, DOCX extraction, DOCX fixture extraction, table/paragraph source maps, extraction omission notices, deleted-text handling, source-map/chunk offset alignment, sidecar report rendering, report JSON payloads, verifier metadata schema, local-only command contract, vendor upgrade guards, new CLI commands, and all prior chunking/rendering/aggregation/Korean-law behavior.
-- Component validation command: `uv run pytest` passes: **52 passed**.
+- Component validation: Python utility suite expanded from 29 to **55 tests** covering audit path preparation, audit finalization, DOCX extraction, DOCX fixture extraction, table/paragraph source maps, extraction omission notices, deleted-text handling, source-map/chunk offset alignment, sidecar report rendering, report JSON payloads, verifier metadata schema, local-only command contract, vendor upgrade guards, new CLI commands, and all prior chunking/rendering/aggregation/Korean-law behavior.
+- Component validation command: `uv run pytest` passes: **55 passed**.
 - Real slash-command E2E: fixture and expected outcomes are prepared, but the live Claude Code `/citation-auditor:audit fixtures/v1.4-docx-legal.docx` run is tracked separately and should not be counted as passed until executed in a real CC session.
 
 ### Notes

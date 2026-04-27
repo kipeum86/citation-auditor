@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/license-Apache_2.0-green.svg)](../../LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange.svg)](https://docs.anthropic.com/en/docs/claude-code)
-[![Tests](https://img.shields.io/badge/tests-52%2F52_passing-brightgreen.svg)](../../tests/)
+[![Tests](https://img.shields.io/badge/tests-55%2F55_passing-brightgreen.svg)](../../tests/)
 
 > **⚠️ 결과물은 AI가 생성한 감사 기록입니다. 반드시 자격 있는 전문가의 검토를 거친 뒤 사용하세요.** 이 플러그인은 의심스러운 인용과 사실 주장을 표시해 줄 뿐, 법률 전문가나 도메인 전문가의 판단을 대체하지 않습니다. `✅` 배지는 *"반박 증거를 찾지 못함"*을 의미하지 *"완전히 맞다는 확정"*이 아닙니다. `⚠️`와 `❓`는 **반드시 사람이 확인**해야 하는 표식입니다.
 
@@ -28,7 +28,7 @@
 
 Claude Code 고유 기능에 의존하기 때문입니다 — frontmatter 기반 skill 포맷, 슬래시 커맨드, 서브에이전트 디스패치용 Task tool, 유틸 호출용 Bash tool, 세션 수준 MCP 서버 통합. 이 요소들은 다른 환경으로 이식되지 않습니다.
 
-Python 유틸 레이어(`python -m citation_auditor prepare|extract-docx|chunk|aggregate|render|report|korean_law …`)는 어느 환경에서든 CLI로 호출할 수 있지만, Claude Code 측 오케스트레이션이 없으면 end-to-end 검증 흐름은 돌아가지 않습니다.
+Python 유틸 레이어(`python -m citation_auditor prepare|finalize|extract-docx|chunk|aggregate|render|report|korean_law …`)는 어느 환경에서든 CLI로 호출할 수 있지만, Claude Code 측 오케스트레이션이 없으면 end-to-end 검증 흐름은 돌아가지 않습니다.
 
 ---
 
@@ -105,7 +105,7 @@ Python 유틸 레이어(`python -m citation_auditor prepare|extract-docx|chunk|a
 │                       │  bash 호출   │                          │
 │  citation-auditor ────┼─────────────►│  prepare / extract-docx  │
 │  verifiers/*          │   stdout     │  chunk / aggregate /     │
-│                       │              │  render / report / law   │
+│                       │              │  finalize / report / law │
 └───────────────────────┘              └──────────────────────────┘
         │
         │ Task tool 디스패치
@@ -389,7 +389,7 @@ uv sync --group dev
 uv run pytest
 ```
 
-52개 테스트가 Python 유틸 레이어(audit 준비 경로, DOCX 추출, DOCX fixture 추출, 별도 보고서, 기계 판독 report JSON, verifier metadata 스키마, local-only command 계약, vendor 보호장치, 청킹, 렌더, 집계, 한국 법률 인용 파싱)를 커버합니다. Skill은 LLM 오케스트레이션과 tool dispatch가 얽혀 있어 **실제 Claude Code 세션에서 E2E로 검증**합니다.
+55개 테스트가 Python 유틸 레이어(audit 준비 경로, audit finalization, DOCX 추출, DOCX fixture 추출, 별도 보고서, 기계 판독 report JSON, verifier metadata 스키마, local-only command 계약, vendor 보호장치, 청킹, 렌더, 집계, 한국 법률 인용 파싱)를 커버합니다. Skill은 LLM 오케스트레이션과 tool dispatch가 얽혀 있어 **실제 Claude Code 세션에서 E2E로 검증**합니다.
 
 CLI 유틸 직접 스모크 테스트:
 
@@ -424,8 +424,9 @@ citation-auditor/
 │       ├── scholarly/SKILL.md    # CrossRef + arXiv + PubMed 학술 인용 verifier
 │       └── wikipedia/SKILL.md    # Wikipedia REST API verifier (영문+한국어)
 ├── citation_auditor/             # Python 유틸 패키지 (결정론 전용)
-│   ├── __main__.py               # CLI 진입점: prepare|extract-docx|chunk|aggregate|render|report|korean_law
+│   ├── __main__.py               # CLI 진입점: prepare|finalize|extract-docx|chunk|aggregate|render|report|korean_law
 │   ├── prepare.py                # 감사 실행 경로 결정 + overwrite 보호
+│   ├── finalize.py               # prepare manifest 기반 markdown/report 최종화
 │   ├── docx.py                   # DOCX → audit-source markdown + source map 추출
 │   ├── report.py                 # DOCX 입력용 별도 markdown/JSON 감사 보고서 렌더러
 │   ├── chunking.py               # 마크다운 AST 청킹, 문단 오버랩
@@ -438,7 +439,7 @@ citation-auditor/
 │   ├── day1-mcp-resolution.md    # Korean-law MCP 해상도 스파이크 노트
 │   └── ko/
 │       └── README.md             # 이 문서 (한국어 미러)
-├── tests/                         # 52개 pytest 케이스
+├── tests/                         # 55개 pytest 케이스
 ├── fixtures/                      # 합성 테스트 의견서
 ├── CHANGELOG.md
 ├── LICENSE                        # Apache License 2.0
@@ -491,12 +492,13 @@ citation-auditor/
 **v1.4 (출시 — 2026-04-27)**
 - 결정론 OOXML 추출(`extract-docx`)로 DOCX 입력을 audit-source markdown + source map JSON으로 변환
 - 결정론 감사 경로 준비(`prepare`): temp path와 sidecar output path를 Python이 결정하고 기본은 덮어쓰기 금지
+- 결정론 감사 최종화(`finalize`): prepare manifest를 기준으로 markdown 렌더링 또는 DOCX sidecar 보고서 생성을 Python이 선택
 - DOCX 입력용 외부 `.audit.md` 보고서 생성(`report`); 원본 DOCX는 수정하지 않음
 - 안정적인 summary, scope, finding 필드를 가진 기계 판독 `.audit.json` 보고서 payload
 - 각주, comments, 이미지/OCR 전용 텍스트, 재구성하지 않은 Word numbering 등 미지원 또는 부분 반영 영역을 DOCX 보고서 Scope Notice에 표시
 - claim offset을 문단·표 셀 같은 source block 위치로 되돌려 보고서에 표시
 - 기존 markdown-in / annotated-markdown-out 흐름은 변경 없음
-- audit 준비 경로, DOCX 추출, source map 정합, DOCX fixture 추출, 별도 보고서, report JSON, verifier metadata 스키마, local-only command 계약, vendor 보호장치, CLI, 렌더, 집계, 한국 법률 helper를 커버하는 52개 Python 테스트
+- audit 준비 경로, audit finalization, DOCX 추출, source map 정합, DOCX fixture 추출, 별도 보고서, report JSON, verifier metadata 스키마, local-only command 계약, vendor 보호장치, CLI, 렌더, 집계, 한국 법률 helper를 커버하는 55개 Python 테스트
 
 **v1.x (계획)**
 - 생성 직후 자동 감사를 위한 `SubagentStop` hook

@@ -111,8 +111,9 @@ input file
 -> claim extraction by skill
 -> verifier subagents
 -> aggregate
--> if original input was .md: render annotated markdown
--> if original input was .docx: render external audit report markdown
+-> finalize from prepare manifest
+-> if original input was .md: annotated markdown stdout
+-> if original input was .docx: external audit report markdown/json sidecars
 ```
 
 중요한 점은 DOCX를 직접 verifier에 넣지 않는 것이다. 기존 offset 기반 파이프라인은 markdown/text 기준으로 설계되어 있으므로, DOCX는 먼저 감사용 중간 markdown으로 변환한다.
@@ -248,12 +249,14 @@ python -m citation_auditor korean_law lookup-law "민법"
 python -m citation_auditor prepare input.docx
 python -m citation_auditor prepare input.docx --overwrite
 python -m citation_auditor extract-docx input.docx --out-md <paths.audit_source_md> --out-map <paths.source_map_json>
+python -m citation_auditor finalize <paths.prepare_manifest_json> <paths.aggregate_output_json>
 python -m citation_auditor report <paths.source_map_json> <paths.aggregate_output_json> --out <paths.report_md> --out-json <paths.report_json>
 ```
 
 규약:
 
 - `prepare`는 원본 path를 받아 mode, audit input path, work dir, aggregate 입출력 path, DOCX sidecar output path를 짧은 JSON으로 출력한다.
+- `prepare` stdout은 skill이 `paths.prepare_manifest_json`에 그대로 저장한다.
 - `.docx` 입력에서 기존 `.audit.md` 또는 `.audit.json`이 있으면 기본은 non-zero exit이고, 사용자가 `--overwrite`를 명시한 경우에만 진행한다.
 - skill은 temp path나 sidecar output path를 직접 만들지 않고 항상 `prepare` JSON의 `paths` 값을 사용한다.
 - `extract-docx`는 audit-source markdown과 source map JSON을 명시 경로에 쓴다.
@@ -266,6 +269,7 @@ python -m citation_auditor report <paths.source_map_json> <paths.aggregate_outpu
 - `report`의 첫 번째 인자는 항상 source map JSON이다.
 - `report`의 두 번째 인자는 항상 `aggregate`가 출력한 `AggregateOutput` JSON이다.
 - `report --out`이 없으면 stdout으로 보고서를 출력한다. skill에서는 항상 `--out`을 사용한다.
+- `finalize`는 prepare manifest의 mode에 따라 markdown 입력은 annotated markdown을 stdout으로 출력하고, DOCX 입력은 `report`를 호출해 `.audit.md`/`.audit.json`을 생성한 뒤 짧은 JSON summary만 stdout으로 출력한다.
 
 MVP에서 skill이 수행할 전체 DOCX 흐름:
 
@@ -275,7 +279,7 @@ python -m citation_auditor extract-docx input.docx --out-md <paths.audit_source_
 python -m citation_auditor chunk <audit_input> --max-tokens 3000
 # claim extraction -> verifier dispatch는 skill이 수행
 python -m citation_auditor aggregate <paths.aggregate_input_json> > <paths.aggregate_output_json>
-python -m citation_auditor report <paths.source_map_json> <paths.aggregate_output_json> --out <paths.report_md> --out-json <paths.report_json>
+python -m citation_auditor finalize <paths.prepare_manifest_json> <paths.aggregate_output_json>
 ```
 
 ## 7. Skill 변경안
@@ -295,12 +299,13 @@ Confirm $0 exists and has extension .md, .markdown, or .docx.
 
 1. Determine the input extension.
 2. Run prepare to obtain deterministic paths. Pass --overwrite only when the user explicitly supplied it.
+   - Write the prepare stdout to paths.prepare_manifest_json.
 3. If the input is .md or .markdown, run the existing markdown pipeline with the prepare-provided audit_input.
 4. If the input is .docx:
    - Run extract-docx with the prepare-provided audit_source_md and source_map_json paths.
    - Treat the temporary audit-source markdown as the document input for all existing claim extraction, verifier routing, Task dispatch, invalid JSON handling, skipped forecast handling, and aggregate schema rules.
    - Preserve the existing aggregate input schema exactly.
-   - Replace the final render "$0" <aggfile> step with report <mapfile> <aggfile> --out <paths.report_md> --out-json <paths.report_json>.
+   - Replace the final render/report branch with finalize <paths.prepare_manifest_json> <paths.aggregate_output_json>.
    - Return only the generated report path plus a concise Summary table. Do not paste the full report into chat.
 ```
 
@@ -357,10 +362,14 @@ argument-hint: "[--local-only|--no-web|--offline] [--overwrite] <file.md|file.do
 - `test_prepare_subcommand_returns_markdown_paths`: markdown 입력에서 prepare가 원문을 audit_input으로 유지하는지 확인
 - `test_prepare_subcommand_returns_docx_paths_for_spaced_unicode_input`: 공백/한글이 있는 DOCX 경로에서 prepare가 안전한 temp path와 sidecar path를 반환하는지 확인
 - `test_prepare_subcommand_blocks_existing_docx_outputs_without_overwrite`: 기존 sidecar가 있을 때 기본 차단, `--overwrite` 허용을 확인
+- `test_finalize_subcommand_renders_markdown_from_prepare_manifest`: markdown manifest + aggregate output으로 annotated markdown이 생성되는지 확인
+- `test_finalize_subcommand_writes_docx_sidecar_reports`: DOCX manifest + aggregate output으로 `.audit.md`/`.audit.json`과 짧은 summary JSON이 생성되는지 확인
+- `test_finalize_subcommand_blocks_stale_docx_manifest_without_overwrite`: 오래된 prepare manifest로 기존 sidecar를 덮어쓰지 않는지 확인
 
 ### CLI 테스트
 
 - `prepare`가 지원 확장자만 허용하고 mode별 path manifest를 JSON으로 출력하는지 확인
+- `finalize`가 prepare manifest의 mode별로 markdown stdout 또는 DOCX sidecar report를 생성하는지 확인
 - `extract-docx`가 markdown과 map JSON을 생성하는지 확인
 - `report`가 `.audit.md`를 생성하는지 확인
 - 잘못된 확장자 또는 깨진 docx에서 non-zero exit
@@ -558,13 +567,14 @@ docs/audit-20260426-engineering-design.md
 2. `report.py`로 external audit report 생성
 3. CLI에 `extract-docx`, `report` 추가
 4. CLI에 `prepare` 추가해서 temp path와 sidecar output path를 Python이 결정하게 함
-5. skill에서 `.docx` 분기 추가
-6. slash command 문구 수정
-7. README/KO README에 DOCX 사용법 추가
-8. 테스트 추가
-9. changelog/version bump
-10. 실제 CC 세션에서 DOCX E2E 검증
-11. 필요할 경우 canary legal agent 1개만 vendor 업데이트
-12. 별도 엔지니어링/설계 감사 문서 작성
+5. CLI에 `finalize` 추가해서 markdown render와 DOCX report 분기를 Python이 결정하게 함
+6. skill에서 `.docx` 분기 추가
+7. slash command 문구 수정
+8. README/KO README에 DOCX 사용법 추가
+9. 테스트 추가
+10. changelog/version bump
+11. 실제 CC 세션에서 DOCX E2E 검증
+12. 필요할 경우 canary legal agent 1개만 vendor 업데이트
+13. 별도 엔지니어링/설계 감사 문서 작성
 
 이 순서가 좋은 이유는, 기존 markdown 파이프라인을 먼저 건드리지 않고 DOCX 변환과 보고서 생성을 옆에 붙일 수 있기 때문이다. 실패해도 기존 `/audit file.md` 동작을 망가뜨릴 가능성이 작다.

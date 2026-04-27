@@ -19,6 +19,62 @@ def _run_module(repo_root: Path, *args: str, input_text: str | None = None) -> s
     )
 
 
+def _write_single_aggregate(path: Path, *, label: str = "verified") -> None:
+    path.write_text(
+        json.dumps(
+            {
+                "aggregated": [
+                    {
+                        "claim": {
+                            "text": "Normal sentence one.",
+                            "sentence_span": {"start": 0, "end": 20},
+                            "claim_type": "factual",
+                            "suggested_verifier": "general-web",
+                        },
+                        "verdict": {
+                            "claim": {
+                                "text": "Normal sentence one.",
+                                "sentence_span": {"start": 0, "end": 20},
+                                "claim_type": "factual",
+                                "suggested_verifier": "general-web",
+                            },
+                            "label": label,
+                            "verifier_name": "general-web",
+                            "authority": 0.5,
+                            "rationale": "Checked." if label == "verified" else "Not enough evidence.",
+                            "evidence": [],
+                        },
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def _write_single_source_map(path: Path, *, source_path: str, markdown_path: str | None = None) -> None:
+    path.write_text(
+        json.dumps(
+            {
+                "source_type": "docx",
+                "source_path": source_path,
+                "markdown_path": markdown_path,
+                "blocks": [
+                    {
+                        "id": "P0001",
+                        "kind": "paragraph",
+                        "label": "문단 1",
+                        "text": "Normal sentence one.",
+                        "start": 0,
+                        "end": 20,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
 def test_chunk_subcommand_prints_valid_json(repo_root: Path, tmp_path: Path) -> None:
     source = tmp_path / "input.md"
     source.write_text("One.\n\nTwo.\n\nThree.", encoding="utf-8")
@@ -182,6 +238,7 @@ def test_prepare_subcommand_returns_markdown_paths(repo_root: Path, tmp_path: Pa
     assert payload["paths"]["source_map_json"] is None
     assert payload["paths"]["report_md"] is None
     assert payload["paths"]["report_json"] is None
+    assert Path(payload["paths"]["prepare_manifest_json"]).parent == Path(payload["work_dir"])
     assert Path(payload["paths"]["aggregate_input_json"]).parent == Path(payload["work_dir"])
     assert Path(payload["paths"]["aggregate_output_json"]).parent == Path(payload["work_dir"])
 
@@ -201,6 +258,7 @@ def test_prepare_subcommand_returns_docx_paths_for_spaced_unicode_input(repo_roo
     assert Path(payload["audit_input"]).parent == Path(payload["work_dir"])
     assert payload["paths"]["audit_source_md"] == payload["audit_input"]
     assert Path(payload["paths"]["source_map_json"]).parent == Path(payload["work_dir"])
+    assert Path(payload["paths"]["prepare_manifest_json"]).parent == Path(payload["work_dir"])
     assert payload["paths"]["report_md"] == str((tmp_path / "의견서 초안.audit.md").resolve())
     assert payload["paths"]["report_json"] == str((tmp_path / "의견서 초안.audit.json").resolve())
 
@@ -218,6 +276,75 @@ def test_prepare_subcommand_blocks_existing_docx_outputs_without_overwrite(repo_
     assert "--overwrite" in blocked.stderr
     assert allowed.returncode == 0
     assert json.loads(allowed.stdout)["overwrite"] is True
+
+
+def test_finalize_subcommand_renders_markdown_from_prepare_manifest(repo_root: Path, tmp_path: Path) -> None:
+    markdown_path = tmp_path / "input.md"
+    markdown_path.write_text("Normal sentence one.", encoding="utf-8")
+    prepare_result = _run_module(repo_root, "prepare", str(markdown_path))
+    prepare_payload = json.loads(prepare_result.stdout)
+    manifest_path = Path(prepare_payload["paths"]["prepare_manifest_json"])
+    aggregate_path = Path(prepare_payload["paths"]["aggregate_output_json"])
+    manifest_path.write_text(prepare_result.stdout, encoding="utf-8")
+    _write_single_aggregate(aggregate_path)
+
+    result = _run_module(repo_root, "finalize", str(manifest_path), str(aggregate_path))
+
+    assert result.returncode == 0
+    assert "Normal sentence one. **[✅ general-web]**" in result.stdout
+    assert "## Audit Report" in result.stdout
+
+
+def test_finalize_subcommand_writes_docx_sidecar_reports(repo_root: Path, tmp_path: Path) -> None:
+    docx_path = tmp_path / "input.docx"
+    _write_docx(docx_path, "<w:p><w:r><w:t>Normal sentence one.</w:t></w:r></w:p>")
+    prepare_result = _run_module(repo_root, "prepare", str(docx_path))
+    prepare_payload = json.loads(prepare_result.stdout)
+    paths = prepare_payload["paths"]
+    manifest_path = Path(paths["prepare_manifest_json"])
+    source_map_path = Path(paths["source_map_json"])
+    aggregate_path = Path(paths["aggregate_output_json"])
+    report_path = Path(paths["report_md"])
+    report_json_path = Path(paths["report_json"])
+    manifest_path.write_text(prepare_result.stdout, encoding="utf-8")
+    _write_single_source_map(source_map_path, source_path=str(docx_path.resolve()), markdown_path=paths["audit_source_md"])
+    _write_single_aggregate(aggregate_path, label="unknown")
+
+    result = _run_module(repo_root, "finalize", str(manifest_path), str(aggregate_path))
+
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    assert payload == {
+        "mode": "docx_report",
+        "report": str(report_path),
+        "json": str(report_json_path),
+        "summary": {"contradicted": 0, "unknown": 1, "verified": 0, "total": 1},
+    }
+    assert "| unknown | 1 |" in report_path.read_text(encoding="utf-8")
+    assert json.loads(report_json_path.read_text(encoding="utf-8"))["findings"][0]["location"] == "문단 1"
+
+
+def test_finalize_subcommand_blocks_stale_docx_manifest_without_overwrite(repo_root: Path, tmp_path: Path) -> None:
+    docx_path = tmp_path / "input.docx"
+    _write_docx(docx_path, "<w:p><w:r><w:t>Normal sentence one.</w:t></w:r></w:p>")
+    prepare_result = _run_module(repo_root, "prepare", str(docx_path))
+    prepare_payload = json.loads(prepare_result.stdout)
+    paths = prepare_payload["paths"]
+    manifest_path = Path(paths["prepare_manifest_json"])
+    source_map_path = Path(paths["source_map_json"])
+    aggregate_path = Path(paths["aggregate_output_json"])
+    report_path = Path(paths["report_md"])
+    manifest_path.write_text(prepare_result.stdout, encoding="utf-8")
+    _write_single_source_map(source_map_path, source_path=str(docx_path.resolve()), markdown_path=paths["audit_source_md"])
+    _write_single_aggregate(aggregate_path)
+    report_path.write_text("old report", encoding="utf-8")
+
+    result = _run_module(repo_root, "finalize", str(manifest_path), str(aggregate_path))
+
+    assert result.returncode != 0
+    assert "already exists" in result.stderr
+    assert "--overwrite" in result.stderr
+    assert report_path.read_text(encoding="utf-8") == "old report"
 
 
 def test_extract_docx_subcommand_writes_markdown_and_map(repo_root: Path, tmp_path: Path) -> None:

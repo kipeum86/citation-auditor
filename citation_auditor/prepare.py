@@ -39,6 +39,7 @@ def prepare_audit(input_path: Path, *, overwrite: bool = False) -> dict[str, Any
         "work_dir": str(work_dir),
         "overwrite": overwrite,
         "paths": {
+            "prepare_manifest_json": str(work_dir / "prepare.json"),
             "audit_source_md": str(audit_source) if audit_source is not None else None,
             "source_map_json": str(source_map) if source_map is not None else None,
             "aggregate_input_json": str(work_dir / "aggregate-input.json"),

@@ -126,7 +126,7 @@
 
 ### 3.1 Orchestration이 skill prompt에 과도하게 집중되어 있다
 
-상태: 부분 처리됨. `prepare` 명령으로 파일 타입 판정, temp work dir, aggregate 입출력 경로, DOCX sidecar output 경로 생성을 Python으로 내렸다. `finalize` 통합은 아직 남아 있어 render/report 최종 분기는 skill에 일부 남아 있다.
+상태: 처리됨. `prepare` 명령으로 파일 타입 판정, temp work dir, aggregate 입출력 경로, DOCX sidecar output 경로 생성을 Python으로 내렸다. `finalize` 명령도 추가해 markdown render와 DOCX report 최종 분기를 prepare manifest 기반 Python 결정으로 옮겼다. Skill은 이제 `prepare -> chunk -> verifier dispatch -> aggregate -> finalize`만 수행한다.
 
 문제: 파일 타입 판정, temp path 생성, chunk 실행, verifier dispatch, aggregate input 조립, render/report 분기까지 primary skill이 절차형 prompt로 들고 있다.
 
@@ -235,7 +235,7 @@
 
 상태: 부분 처리됨. `fixtures/v1.4-docx-legal.docx`와 `fixtures/v1.4-docx-legal.expected.md`를 추가했고, Python component suite에서 DOCX fixture 추출 순서를 검증한다. 실제 Claude Code slash-command 실행 결과는 아직 별도 확인이 필요하다.
 
-문제: Python 테스트는 52개로 늘었지만, v1.4.0 DOCX 경로는 실제 Claude Code slash command에서 아직 검증되지 않았다.
+문제: Python 테스트는 55개로 늘었지만, v1.4.0 DOCX 경로는 실제 Claude Code slash command에서 아직 검증되지 않았다.
 
 왜 중요한가: 이 프로젝트의 위험 지점은 Python 유틸보다 skill orchestration이다. component test가 통과해도 skill이 temp path, aggregate schema, final report 경로를 잘못 처리할 수 있다.
 
