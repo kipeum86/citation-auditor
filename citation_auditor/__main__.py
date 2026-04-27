@@ -4,11 +4,13 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from xml.etree.ElementTree import ParseError
 
 from pydantic import BaseModel, ValidationError
 
 from citation_auditor.aggregation import aggregate_verdicts
 from citation_auditor.chunking import ChunkSegment, MarkdownChunk, chunk_markdown
+from citation_auditor.docx import DocxExtractionError, write_docx_extraction
 from citation_auditor.korean_law import LAW_ID_LOOKUP, CitationRef, extract_hang, extract_ho, normalize_case_number, parse_citation
 from citation_auditor.models import (
     AggregateInput,
@@ -22,6 +24,7 @@ from citation_auditor.models import (
     Verdict,
 )
 from citation_auditor.render import render_markdown
+from citation_auditor.report import write_audit_report
 from citation_auditor.settings import AuditSettings
 
 
@@ -42,6 +45,18 @@ def build_parser() -> argparse.ArgumentParser:
     render_parser.add_argument("input_md", type=Path, help="Source markdown file.")
     render_parser.add_argument("aggregated_json", type=Path, help="Aggregated verdict JSON file.")
     render_parser.set_defaults(func=_run_render)
+
+    extract_docx_parser = subparsers.add_parser("extract-docx", help="Extract DOCX text into audit-source markdown and source map JSON.")
+    extract_docx_parser.add_argument("input_docx", type=Path, help="DOCX file to extract.")
+    extract_docx_parser.add_argument("--out-md", type=Path, required=True, help="Output audit-source markdown path.")
+    extract_docx_parser.add_argument("--out-map", type=Path, required=True, help="Output source map JSON path.")
+    extract_docx_parser.set_defaults(func=_run_extract_docx)
+
+    report_parser = subparsers.add_parser("report", help="Render an external audit report from a source map and aggregate output.")
+    report_parser.add_argument("source_map", type=Path, help="Source map JSON file.")
+    report_parser.add_argument("aggregated_json", type=Path, help="Aggregated verdict JSON file.")
+    report_parser.add_argument("--out", type=Path, help="Output audit report markdown path.")
+    report_parser.set_defaults(func=_run_report)
 
     korean_law_parser = subparsers.add_parser("korean_law", help="Pure helpers for Korean legal citation parsing.")
     korean_law_subparsers = korean_law_parser.add_subparsers(dest="korean_law_command", required=True)
@@ -141,6 +156,21 @@ def _run_render(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_extract_docx(args: argparse.Namespace) -> int:
+    payload = write_docx_extraction(args.input_docx, args.out_md, args.out_map)
+    _print_json(payload)
+    return 0
+
+
+def _run_report(args: argparse.Namespace) -> int:
+    report = write_audit_report(args.source_map, args.aggregated_json, args.out)
+    if args.out is None:
+        print(report)
+    else:
+        _print_json({"report": str(args.out)})
+    return 0
+
+
 def _run_korean_law_parse(args: argparse.Namespace) -> int:
     _print_json(parse_citation(args.text))
     return 0
@@ -214,6 +244,9 @@ def main(argv: list[str] | None = None) -> int:
         print(exc, file=sys.stderr)
         return 1
     except json.JSONDecodeError as exc:
+        print(exc, file=sys.stderr)
+        return 1
+    except (DocxExtractionError, ParseError, OSError) as exc:
         print(exc, file=sys.stderr)
         return 1
 

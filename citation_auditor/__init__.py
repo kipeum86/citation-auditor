@@ -2,6 +2,7 @@
 
 from citation_auditor.aggregation import aggregate_verdicts
 from citation_auditor.chunking import chunk_markdown, dedupe_claims
+from citation_auditor.docx import extract_docx, write_docx_extraction
 from citation_auditor.models import (
     AggregateInput,
     AggregateOutput,
@@ -14,10 +15,13 @@ from citation_auditor.models import (
     ChunkSegmentPayload,
     Evidence,
     SentenceSpan,
+    SourceBlock,
+    SourceMap,
     Verdict,
     VerdictLabel,
 )
 from citation_auditor.render import render_markdown
+from citation_auditor.report import render_audit_report
 from citation_auditor.settings import AuditSettings
 
 __all__ = [
@@ -33,13 +37,17 @@ __all__ = [
     "ChunkSegmentPayload",
     "Evidence",
     "SentenceSpan",
+    "SourceBlock",
+    "SourceMap",
     "Verdict",
     "VerdictLabel",
     "aggregate_verdicts",
     "chunk_markdown",
     "dedupe_claims",
+    "extract_docx",
     "render_markdown",
+    "render_audit_report",
+    "write_docx_extraction",
 ]
 
-__version__ = "0.1.0"
-
+__version__ = "1.4.0"

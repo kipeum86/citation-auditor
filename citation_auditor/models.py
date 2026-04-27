@@ -80,6 +80,32 @@ class ChunkOutput(BaseModel):
     chunks: list[ChunkPayload] = Field(default_factory=list)
 
 
+class SourceBlock(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    id: str = Field(min_length=1)
+    kind: str = Field(min_length=1)
+    label: str = Field(min_length=1)
+    text: str
+    start: int = Field(ge=0)
+    end: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def validate_bounds(self) -> "SourceBlock":
+        if self.end < self.start:
+            raise ValueError("source block end must be greater than or equal to start")
+        return self
+
+
+class SourceMap(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    source_type: str = Field(min_length=1)
+    source_path: str = Field(min_length=1)
+    markdown_path: str | None = None
+    blocks: list[SourceBlock] = Field(default_factory=list)
+
+
 class AggregateVerdictBundle(BaseModel):
     chunk: ChunkPayload
     claim: Claim

@@ -209,7 +209,7 @@ cat <<'EOF'
      git commit -m "vendor: citation-auditor v<VERSION>"
 
 4. Open the target repo in Claude Code. The slash command
-   /citation-auditor:audit <file.md> will be available.
+   /citation-auditor:audit <file.md|file.docx> will be available.
 EOF
 
 # Substitute version into the instructions above (rough, but works for the commit line)

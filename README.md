@@ -2,15 +2,15 @@
 
 🌐 **Language**: **English** | [한국어](docs/ko/README.md)
 
-[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-Apache_2.0-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange.svg)](https://docs.anthropic.com/en/docs/claude-code)
-[![Tests](https://img.shields.io/badge/tests-29%2F29_passing-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-38%2F38_passing-brightgreen.svg)](tests/)
 
 > **⚠️ AI-generated audits only. Always have outputs reviewed by a qualified professional.** This plugin flags suspicious citations and factual claims but does not replace human legal or domain expertise. A `✅` badge means *"no contradiction found"* — not *"confirmed correct beyond doubt."* Treat `⚠️` and `❓` as mandatory manual-review triggers.
 
-**citation-auditor** is a pluggable fact-check and citation audit layer for Claude Code. It takes markdown output from any AI agent, extracts factual claims, dispatches domain-specific verifier subagents, and returns the same markdown with inline verdict badges (✅ / ⚠️ / ❓) plus an appended Audit Report.
+**citation-auditor** is a pluggable fact-check and citation audit layer for Claude Code. It audits markdown output from AI agents and DOCX documents, extracts factual claims, dispatches domain-specific verifier subagents, and returns either annotated markdown with inline verdict badges (✅ / ⚠️ / ❓) or a sidecar `.audit.md` report for DOCX inputs.
 
 Designed for agents that generate content requiring citation accuracy — **legal opinions, medical summaries, financial analyses, academic briefs, journalistic drafts**. Seven bundled verifiers span **Korean law** (Korean-law MCP), **US law** (Cornell LII + CourtListener), **UK law** (BAILII + legislation.gov.uk), **EU law** (EUR-Lex), **academic citations** (CrossRef / arXiv / PubMed), **general-knowledge facts** (Wikipedia), and **arbitrary web sources** (WebSearch + WebFetch). See [Bundled Verifiers](#bundled-verifiers) for the full table. The verifier interface is designed for third-party extension.
 
@@ -28,7 +28,7 @@ Part of the **AI Trust Infrastructure** series — the post-receive counterpart 
 
 The plugin relies on Claude Code-specific features: the skill format with frontmatter, slash commands, the Task tool for subagent dispatch, the Bash tool for utility invocation, and session-level MCP server integration. None of these are portable to other surfaces.
 
-The Python utility layer (`python -m citation_auditor chunk|render|aggregate|korean_law …`) can be invoked as a CLI in any environment, but without the Claude Code-side orchestration the end-to-end verification flow does not run.
+The Python utility layer (`python -m citation_auditor extract-docx|chunk|aggregate|render|report|korean_law …`) can be invoked as a CLI in any environment, but without the Claude Code-side orchestration the end-to-end verification flow does not run.
 
 ---
 
@@ -68,11 +68,12 @@ Today a careful reviewer spends 10–30 minutes per document spot-checking each 
 
 ## What It Does
 
-- **Extracts** verifiable factual claims and citations from markdown AI output
+- **Extracts** verifiable factual claims and citations from markdown AI output or DOCX documents
 - **Routes** each claim to a domain-appropriate verifier skill
 - **Dispatches** verifier subagents in parallel via Claude Code's Task tool
 - **Aggregates** verdicts using authority-weighted consensus
-- **Re-emits** the original markdown with inline verdict badges + an appended `## Audit Report` section
+- **Re-emits** markdown with inline verdict badges + an appended `## Audit Report` section
+- **Generates** sidecar `.audit.md` reports for DOCX inputs without modifying the original DOCX
 - **Preserves** all existing downstream pipelines (`md-to-docx.py`, etc.) without modification
 
 ## What It Does NOT Do
@@ -100,8 +101,9 @@ Today a careful reviewer spends 10–30 minutes per document spot-checking each 
 ┌───────────────────────┐              ┌──────────────────────────┐
 │  Skills   (primary)   │              │  Python  (deterministic) │
 │                       │  bash call   │                          │
-│  citation-auditor ────┼─────────────►│  chunk / aggregate /     │
-│  verifiers/*          │   stdout     │  render / korean_law     │
+│  citation-auditor ────┼─────────────►│  extract-docx / chunk /  │
+│  verifiers/*          │   stdout     │  aggregate / render /    │
+│                       │              │  report / korean_law     │
 └───────────────────────┘              └──────────────────────────┘
         │
         │ Task tool dispatch
@@ -114,7 +116,7 @@ Today a careful reviewer spends 10–30 minutes per document spot-checking each 
 ```
 
 - **Skills drive orchestration.** The `citation-auditor` skill directs Claude through chunking → claim extraction → verifier routing → Task-based parallel verification → aggregation → rendering.
-- **Python does only deterministic work.** Markdown AST chunking, reverse-offset badge insertion, verdict weighting, pydantic schema validation, Korean legal citation parsing. No LLM calls, no external API calls.
+- **Python does only deterministic work.** DOCX text extraction, Markdown AST chunking, reverse-offset badge insertion, sidecar report rendering, verdict weighting, pydantic schema validation, Korean legal citation parsing. No LLM calls, no external API calls.
 - **Verifiers are skill files.** Each verifier is a separate `skills/verifiers/<name>/SKILL.md` with frontmatter declaring `patterns` and `authority` plus a body describing the verification protocol. Claude loads the skill via Task tool subagent dispatch.
 
 **CC-native design principle:** no separate Anthropic API key, no Tavily key, no LLM provider configuration. The Claude instance already running in your Claude Code session does all the reasoning. Privacy settings (e.g., `ANTHROPIC_BASE_URL` routing to a local endpoint) are inherited automatically.
@@ -169,13 +171,19 @@ Choose **User scope** when prompted. User scope installs to `~/.claude/` so the 
 /reload-plugins
 ```
 
-### Audit a markdown file
+### Audit a markdown or DOCX file
 
 ```
 /citation-auditor:audit path/to/opinion.md
 ```
 
 Output is the same file with `**[✅ verifier-name]**` / `**[⚠️ verifier-name]**` / `**[❓ verifier-name]**` badges after each audited sentence, followed by a `## Audit Report` section with rationale and evidence for every claim.
+
+```
+/citation-auditor:audit path/to/opinion.docx
+```
+
+DOCX inputs leave the original Word document untouched and create `path/to/opinion.audit.md`, a sidecar report with summary counts, locations such as `문단 3` or `표 1 / 행 2 / 열 1`, rationales, and evidence.
 
 ### Update
 
@@ -212,7 +220,7 @@ The script copies the orchestration skill, all bundled verifier skills, the `/ci
 
 1. Add `marko>=2.1.0` and `pydantic>=2.7.0` to your target project's dependency manifest (`pyproject.toml`, `requirements.txt`, etc.), then run `uv sync` (or your package manager's equivalent).
 2. If you want subagent WebFetch calls to not prompt on every verifier source, copy the `WebFetch(domain:...)` allowlist entries into your target project's `.claude/settings.json` under `"permissions.allow"`. The script prints the exact list you need.
-3. Commit the vendored files: `git add .claude/ citation_auditor/ pyproject.toml && git commit -m "vendor: citation-auditor v1.3.0"`.
+3. Commit the vendored files: `git add .claude/ citation_auditor/ pyproject.toml && git commit -m "vendor: citation-auditor v1.4.0"`.
 
 Each vendored copy gets a `VENDOR.md` stamp at `.claude/skills/citation-auditor/VENDOR.md` recording the version, source commit SHA, source tag, and timestamp of the vendor run. Use this to tell at a glance which citation-auditor version a project is running.
 
@@ -372,7 +380,7 @@ uv sync --group dev
 uv run pytest
 ```
 
-29 tests cover the Python utility layer (chunking, rendering, aggregation, Korean legal citation parsing). Skills are tested end-to-end inside a real Claude Code session since they involve LLM orchestration and tool dispatch.
+38 tests cover the Python utility layer (DOCX extraction, sidecar reports, chunking, rendering, aggregation, Korean legal citation parsing). Skills are tested end-to-end inside a real Claude Code session since they involve LLM orchestration and tool dispatch.
 
 Smoke test the CLI utilities directly:
 
@@ -406,7 +414,9 @@ citation-auditor/
 │       ├── scholarly/SKILL.md    # CrossRef + arXiv + PubMed citation verifier
 │       └── wikipedia/SKILL.md    # Wikipedia REST API verifier (EN + KO)
 ├── citation_auditor/             # Python utility package (deterministic only)
-│   ├── __main__.py               # CLI entry: chunk|aggregate|render|korean_law
+│   ├── __main__.py               # CLI entry: extract-docx|chunk|aggregate|render|report|korean_law
+│   ├── docx.py                   # DOCX → audit-source markdown + source map extraction
+│   ├── report.py                 # Sidecar audit report renderer for DOCX inputs
 │   ├── chunking.py               # Markdown AST chunking with paragraph overlap
 │   ├── render.py                 # Marko-based badge insertion + Audit Report
 │   ├── aggregation.py            # Authority-weighted verdict consensus
@@ -417,7 +427,7 @@ citation-auditor/
 │   ├── day1-mcp-resolution.md    # Korean-law MCP capability spike notes
 │   └── ko/
 │       └── README.md             # Korean mirror of this document
-├── tests/                         # 29 pytest cases
+├── tests/                         # 38 pytest cases
 ├── fixtures/                      # Synthetic test opinions
 ├── CHANGELOG.md
 ├── LICENSE                        # Apache License 2.0
@@ -467,9 +477,17 @@ Runtime Python dependencies are intentionally minimal: `pydantic` and `marko`. N
 - README "Vendoring into another project" section (EN + KO) — when to pick plugin vs vendor
 - Orchestration skill: concrete JSON schema example added for aggregate input (surfaced during v1.2.0 full production pipeline E2E run)
 
+**v1.4 (shipped — 2026-04-27)**
+- DOCX input support via deterministic OOXML extraction (`extract-docx`) into audit-source markdown plus source map JSON
+- External `.audit.md` report generation (`report`) for DOCX inputs; original DOCX files remain untouched
+- Report locations resolve claim offsets back to source blocks such as paragraphs and table cells
+- Existing markdown-in / annotated-markdown-out flow unchanged
+- 38-test Python utility suite covering DOCX extraction, source-map alignment, sidecar reports, CLI, rendering, aggregation, and Korean legal helpers
+
 **v1.x (planned)**
 - `SubagentStop` hook for automatic post-generation audit
 - Feedback loop mode: return `⚠️` / `❓` claims to the upstream writing agent for revision
+- DOCX appendix export and Word comments after the sidecar-report path is stable
 - MCP tool form: expose `verify_claim` as an MCP tool callable from any CC-compatible client
 - Privacy end-to-end tests against local Ollama endpoints
 - OpenAI / additional provider support through CC's existing provider abstraction

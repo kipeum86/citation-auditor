@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "citation-auditor"
-version = "1.3.0"
-description = "Audit markdown claims and re-emit annotated markdown with verification badges."
+version = "1.4.0"
+description = "Audit markdown and DOCX claims with verification badges or sidecar reports."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

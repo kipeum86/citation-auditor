@@ -2,15 +2,15 @@
 
 🌐 **언어**: [English](../../README.md) | **한국어**
 
-[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](../../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)](../../CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-Apache_2.0-green.svg)](../../LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange.svg)](https://docs.anthropic.com/en/docs/claude-code)
-[![Tests](https://img.shields.io/badge/tests-29%2F29_passing-brightgreen.svg)](../../tests/)
+[![Tests](https://img.shields.io/badge/tests-38%2F38_passing-brightgreen.svg)](../../tests/)
 
 > **⚠️ 결과물은 AI가 생성한 감사 기록입니다. 반드시 자격 있는 전문가의 검토를 거친 뒤 사용하세요.** 이 플러그인은 의심스러운 인용과 사실 주장을 표시해 줄 뿐, 법률 전문가나 도메인 전문가의 판단을 대체하지 않습니다. `✅` 배지는 *"반박 증거를 찾지 못함"*을 의미하지 *"완전히 맞다는 확정"*이 아닙니다. `⚠️`와 `❓`는 **반드시 사람이 확인**해야 하는 표식입니다.
 
-**citation-auditor**는 Claude Code 용 **확장형 팩트체크·인용 감사 레이어**입니다. AI 에이전트가 생성한 마크다운 출력에서 사실 주장을 추출하고, 도메인별 verifier 서브에이전트에게 검증을 위임한 뒤, 원본 마크다운에 배지(✅ / ⚠️ / ❓)와 `Audit Report`를 덧붙여 돌려줍니다.
+**citation-auditor**는 Claude Code 용 **확장형 팩트체크·인용 감사 레이어**입니다. AI 에이전트가 생성한 마크다운 출력과 DOCX 문서에서 사실 주장을 추출하고, 도메인별 verifier 서브에이전트에게 검증을 위임한 뒤, 마크다운에는 배지(✅ / ⚠️ / ❓)와 `Audit Report`를 덧붙이고 DOCX에는 별도 `.audit.md` 보고서를 생성합니다.
 
 인용 정확도가 중요한 모든 AI 에이전트에서 사용하도록 설계했습니다 — **법률 의견서, 의료 요약, 금융 분석, 학술 브리프, 언론 기사 초안**. 번들 verifier 7종이 **한국법**(Korean-law MCP), **미국법**(Cornell LII + CourtListener), **영국법**(BAILII + legislation.gov.uk), **EU법**(EUR-Lex), **학술 인용**(CrossRef / arXiv / PubMed), **일반 지식**(Wikipedia), **임의의 웹 소스**(WebSearch + WebFetch)를 커버합니다. 전체 표는 [번들 verifier](#번들-verifier) 섹션 참조. Verifier 인터페이스는 서드파티 확장이 가능하도록 열려 있습니다.
 
@@ -28,7 +28,7 @@
 
 Claude Code 고유 기능에 의존하기 때문입니다 — frontmatter 기반 skill 포맷, 슬래시 커맨드, 서브에이전트 디스패치용 Task tool, 유틸 호출용 Bash tool, 세션 수준 MCP 서버 통합. 이 요소들은 다른 환경으로 이식되지 않습니다.
 
-Python 유틸 레이어(`python -m citation_auditor chunk|render|aggregate|korean_law …`)는 어느 환경에서든 CLI로 호출할 수 있지만, Claude Code 측 오케스트레이션이 없으면 end-to-end 검증 흐름은 돌아가지 않습니다.
+Python 유틸 레이어(`python -m citation_auditor extract-docx|chunk|aggregate|render|report|korean_law …`)는 어느 환경에서든 CLI로 호출할 수 있지만, Claude Code 측 오케스트레이션이 없으면 end-to-end 검증 흐름은 돌아가지 않습니다.
 
 ---
 
@@ -68,11 +68,12 @@ Python 유틸 레이어(`python -m citation_auditor chunk|render|aggregate|korea
 
 ## 주요 기능
 
-- **추출**: AI 마크다운 출력에서 검증 가능한 사실 주장과 인용을 파싱
+- **추출**: AI 마크다운 출력 또는 DOCX 문서에서 검증 가능한 사실 주장과 인용을 파싱
 - **라우팅**: 각 claim을 도메인에 맞는 verifier skill로 분배
 - **병렬 디스패치**: Claude Code의 Task tool로 verifier 서브에이전트 병렬 실행
 - **판정 집계**: authority 가중치 기반 합의로 최종 verdict 결정
 - **재방출**: 원본 마크다운에 인라인 배지 + 문서 끝 `## Audit Report` 섹션 삽입
+- **DOCX 보고서**: 원본 DOCX를 수정하지 않고 별도 `.audit.md` 감사 보고서 생성
 - **파이프라인 무침입**: 기존 소비 측 스크립트(`md-to-docx.py` 등) 수정 0줄
 
 ## 지원하지 않는 기능
@@ -100,8 +101,9 @@ Python 유틸 레이어(`python -m citation_auditor chunk|render|aggregate|korea
 ┌───────────────────────┐              ┌──────────────────────────┐
 │  Skills   (주 드라이버)│              │  Python  (결정론 유틸)    │
 │                       │  bash 호출   │                          │
-│  citation-auditor ────┼─────────────►│  chunk / aggregate /     │
-│  verifiers/*          │   stdout     │  render / korean_law     │
+│  citation-auditor ────┼─────────────►│  extract-docx / chunk /  │
+│  verifiers/*          │   stdout     │  aggregate / render /    │
+│                       │              │  report / korean_law     │
 └───────────────────────┘              └──────────────────────────┘
         │
         │ Task tool 디스패치
@@ -114,7 +116,7 @@ Python 유틸 레이어(`python -m citation_auditor chunk|render|aggregate|korea
 ```
 
 - **Skill이 오케스트레이션 주도.** `citation-auditor` skill이 Claude를 지휘해 청킹 → claim 추출 → verifier 라우팅 → Task 기반 병렬 검증 → 집계 → 렌더링까지 순차 진행.
-- **Python은 결정론 작업만 담당.** 마크다운 AST 청킹, 역순 offset 배지 삽입, verdict 가중치 합의, pydantic 스키마 검증, 한국 법률 인용 파싱. LLM 호출/외부 API 호출 0건.
+- **Python은 결정론 작업만 담당.** DOCX 텍스트 추출, 마크다운 AST 청킹, 역순 offset 배지 삽입, 별도 감사 보고서 렌더링, verdict 가중치 합의, pydantic 스키마 검증, 한국 법률 인용 파싱. LLM 호출/외부 API 호출 0건.
 - **Verifier = skill 파일.** 각 verifier는 독립된 `skills/verifiers/<name>/SKILL.md`. frontmatter에 `patterns` + `authority` 선언, 본문에 "claim을 받아 어떻게 검증하고 verdict JSON을 리턴할지" 명세. Claude가 Task tool 서브에이전트 디스패치를 통해 skill 로드.
 
 **CC-native 설계 원칙:** 별도 Anthropic API 키 불필요, Tavily 키 불필요, LLM provider 설정 불필요. 당신 Claude Code 세션에서 이미 실행 중인 Claude 인스턴스가 모든 추론을 수행합니다. Privacy 설정(예: `ANTHROPIC_BASE_URL`로 로컬 엔드포인트 라우팅)은 자동 상속됩니다.
@@ -169,13 +171,19 @@ scope 선택 프롬프트가 뜨면 **User scope** 선택. User scope는 `~/.cla
 /reload-plugins
 ```
 
-### 마크다운 파일 감사
+### 마크다운 또는 DOCX 파일 감사
 
 ```
 /citation-auditor:audit path/to/opinion.md
 ```
 
 출력은 원본 마크다운과 동일하되, 감사 대상 문장 끝마다 `**[✅ verifier-name]**` / `**[⚠️ verifier-name]**` / `**[❓ verifier-name]**` 배지가 삽입되고 문서 끝에 `## Audit Report` 섹션이 추가됩니다 — 각 claim의 verdict, rationale, evidence 포함.
+
+```
+/citation-auditor:audit path/to/opinion.docx
+```
+
+DOCX 입력은 원본 Word 문서를 수정하지 않고 `path/to/opinion.audit.md` 별도 보고서를 생성합니다. 보고서에는 요약 카운트, `문단 3` 또는 `표 1 / 행 2 / 열 1` 같은 위치, rationale, evidence가 포함됩니다.
 
 ### 업데이트
 
@@ -212,7 +220,7 @@ git pull
 
 1. Target 프로젝트의 의존성 매니페스트(`pyproject.toml`, `requirements.txt` 등)에 `marko>=2.1.0`, `pydantic>=2.7.0` 추가 후 `uv sync` (또는 해당 패키지 매니저 동등 명령).
 2. 서브에이전트 WebFetch 호출 시 권한 프롬프트를 줄이려면 target 프로젝트의 `.claude/settings.json`의 `"permissions.allow"`에 `WebFetch(domain:...)` 엔트리 추가. 스크립트가 정확한 리스트를 출력합니다.
-3. Vendor된 파일 커밋: `git add .claude/ citation_auditor/ pyproject.toml && git commit -m "vendor: citation-auditor v1.3.0"`.
+3. Vendor된 파일 커밋: `git add .claude/ citation_auditor/ pyproject.toml && git commit -m "vendor: citation-auditor v1.4.0"`.
 
 각 vendor 사본에는 `.claude/skills/citation-auditor/VENDOR.md`에 **버전, 원본 commit SHA, 원본 태그, vendor 실행 시점** 스탬프가 찍힙니다. 이걸 보면 해당 프로젝트가 citation-auditor의 어떤 버전을 쓰고 있는지 한눈에 확인 가능.
 
@@ -363,7 +371,7 @@ uv sync --group dev
 uv run pytest
 ```
 
-29개 테스트가 Python 유틸 레이어(청킹, 렌더, 집계, 한국 법률 인용 파싱)를 커버합니다. Skill은 LLM 오케스트레이션과 tool dispatch가 얽혀 있어 **실제 Claude Code 세션에서 E2E로 검증**합니다.
+38개 테스트가 Python 유틸 레이어(DOCX 추출, 별도 보고서, 청킹, 렌더, 집계, 한국 법률 인용 파싱)를 커버합니다. Skill은 LLM 오케스트레이션과 tool dispatch가 얽혀 있어 **실제 Claude Code 세션에서 E2E로 검증**합니다.
 
 CLI 유틸 직접 스모크 테스트:
 
@@ -397,7 +405,9 @@ citation-auditor/
 │       ├── scholarly/SKILL.md    # CrossRef + arXiv + PubMed 학술 인용 verifier
 │       └── wikipedia/SKILL.md    # Wikipedia REST API verifier (영문+한국어)
 ├── citation_auditor/             # Python 유틸 패키지 (결정론 전용)
-│   ├── __main__.py               # CLI 진입점: chunk|aggregate|render|korean_law
+│   ├── __main__.py               # CLI 진입점: extract-docx|chunk|aggregate|render|report|korean_law
+│   ├── docx.py                   # DOCX → audit-source markdown + source map 추출
+│   ├── report.py                 # DOCX 입력용 별도 감사 보고서 렌더러
 │   ├── chunking.py               # 마크다운 AST 청킹, 문단 오버랩
 │   ├── render.py                 # Marko 기반 배지 삽입 + Audit Report
 │   ├── aggregation.py            # Authority 가중 verdict 합의
@@ -408,7 +418,7 @@ citation-auditor/
 │   ├── day1-mcp-resolution.md    # Korean-law MCP 해상도 스파이크 노트
 │   └── ko/
 │       └── README.md             # 이 문서 (한국어 미러)
-├── tests/                         # 29개 pytest 케이스
+├── tests/                         # 38개 pytest 케이스
 ├── fixtures/                      # 합성 테스트 의견서
 ├── CHANGELOG.md
 ├── LICENSE                        # Apache License 2.0
@@ -458,9 +468,17 @@ citation-auditor/
 - README "다른 프로젝트에 벤더(vendor)하기" 섹션 (영문+한국어) — 플러그인 vs vendor 선택 기준
 - 오케스트레이션 skill: aggregate 입력 JSON 스키마 구체 예제 추가 (v1.2.0 실전 E2E 때 드러난 갭)
 
+**v1.4 (출시 — 2026-04-27)**
+- 결정론 OOXML 추출(`extract-docx`)로 DOCX 입력을 audit-source markdown + source map JSON으로 변환
+- DOCX 입력용 외부 `.audit.md` 보고서 생성(`report`); 원본 DOCX는 수정하지 않음
+- claim offset을 문단·표 셀 같은 source block 위치로 되돌려 보고서에 표시
+- 기존 markdown-in / annotated-markdown-out 흐름은 변경 없음
+- DOCX 추출, source map 정합, 별도 보고서, CLI, 렌더, 집계, 한국 법률 helper를 커버하는 38개 Python 테스트
+
 **v1.x (계획)**
 - 생성 직후 자동 감사를 위한 `SubagentStop` hook
 - Feedback loop 모드: `⚠️` / `❓` claim을 상위 writing agent에 재작성 요청으로 반환
+- sidecar 보고서 경로가 안정된 뒤 DOCX appendix export 및 Word comments
 - MCP tool form: `verify_claim`을 MCP tool로 노출, CC 호환 클라이언트 누구나 호출
 - 로컬 Ollama 엔드포인트 대상 Privacy E2E 실환경 검증
 - Claude Code의 기존 provider 추상화를 통한 OpenAI / 기타 provider 지원

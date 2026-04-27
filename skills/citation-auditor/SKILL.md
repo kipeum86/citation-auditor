@@ -1,15 +1,18 @@
 ---
 name: citation-auditor
-description: Audit a markdown file by chunking it, extracting claims with structured output, routing each claim to verifier skills, aggregating verdicts, and rendering annotated markdown.
-argument-hint: "<file.md>"
+description: Audit a markdown or DOCX file by chunking extracted audit text, verifying claims, aggregating verdicts, and rendering annotated markdown or an external audit report.
+argument-hint: "<file.md|file.docx>"
 disable-model-invocation: true
 ---
 
-Audit the markdown file at `$0`.
+Audit the markdown or DOCX file at `$0`.
 
-1. Confirm `$0` exists and is a markdown file. If it does not, stop and ask for a valid path.
-2. Run:
-   `python -m citation_auditor chunk "$0" --max-tokens 3000`
+1. Confirm `$0` exists and has extension `.md`, `.markdown`, or `.docx`. If it does not, stop and ask for a valid markdown or DOCX path.
+   - If `$0` is `.md` or `.markdown`, use `$0` as the audit input and use markdown mode.
+   - If `$0` is `.docx`, create two temporary paths for audit-source markdown and source map JSON, then run:
+     `python -m citation_auditor extract-docx "$0" --out-md <tmp-source.md> --out-map <tmp-map.json>`
+     Use `<tmp-source.md>` as the audit input, remember `<tmp-map.json>` as the source map, and use DOCX report mode. The original DOCX must remain untouched.
+2. Run `python -m citation_auditor chunk <audit-input> --max-tokens 3000`, where `<audit-input>` is `$0` in markdown mode and `<tmp-source.md>` in DOCX report mode.
 3. Parse stdout as JSON with the schema `{ "chunks": [...] }`.
 4. For each chunk, extract only factual, citation-bearing claims using structured output with this schema:
    - `text: string`
@@ -27,7 +30,7 @@ Audit the markdown file at `$0`.
    - If `suggested_verifier` is set and exactly matches a loaded verifier skill name, use it.
    - Otherwise test the claim text against each verifier skill frontmatter `patterns` using case-insensitive regex matching and use every match.
    - If nothing matches, fall back to `general-web`.
-8. For each `(claim, verifier)` pair, use the Task tool to dispatch a subagent that loads that verifier skill and receives the claim JSON.
+8. For each `(claim, verifier)` pair, use the Task tool to dispatch a subagent that loads that verifier skill and receives `{ "claim": <claim JSON>, "local_only": false }` unless the user explicitly requested local-only/private verification, in which case set `local_only` to `true`. DOCX mode uses the same verifier payload rule as markdown mode.
 9. Require each verifier subagent to return only this JSON:
    `{ "label": "...", "rationale": "...", "supporting_urls": ["..."], "authority": 0.0 }`
 10. `supporting_urls` may contain either clickable source URLs or plain-language source references when no stable URL exists. Preserve them verbatim and do not invent clickable URLs for non-linkable sources such as precedent search-result IDs.
@@ -64,9 +67,14 @@ Audit the markdown file at `$0`.
 
 12. Write that JSON to a temp file and run:
     `python -m citation_auditor aggregate <tmpfile>`
-13. Write the aggregate output to a temp file and run:
-    `python -m citation_auditor render "$0" <aggfile>`
-14. Return only the final annotated markdown unless the user explicitly asked for intermediate JSON.
+13. Write the aggregate output to a temp file. Then:
+    - In markdown mode, run:
+      `python -m citation_auditor render "$0" <aggfile>`
+    - In DOCX report mode, write a report beside the original DOCX using the same basename plus `.audit.md`, then run:
+      `python -m citation_auditor report <tmp-map.json> <aggfile> --out <original-basename>.audit.md`
+14. Return:
+    - In markdown mode, only the final annotated markdown unless the user explicitly asked for intermediate JSON.
+    - In DOCX report mode, only the generated `.audit.md` path and a concise Summary table from that report. Do not paste the full report into chat unless the user explicitly asks for it.
 15. If claim extraction validation fails, retry once with a repair prompt. If it still fails, skip that chunk and note it briefly.
 16. If a verifier subagent returns invalid JSON, drop that candidate instead of inventing a verdict.
 17. If a line was skipped because it is a forecast, opinion, rumor, or unattributed speculation, treat that as expected behavior rather than an extraction failure.
